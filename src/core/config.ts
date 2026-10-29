@@ -18,7 +18,7 @@ export class Config {
     this.configMapSource = YAML.parse(fileContent);
   }
 
-  get(cfgPath: string): string | null {
+  get(cfgPath: string, defaultVal: string | null = null): string | null {
     if (this.configMapCached.has(cfgPath)) {
       const val = this.configMapCached.get(cfgPath);
       return val ? String(val) : null;
@@ -26,6 +26,11 @@ export class Config {
     const path = cfgPath.split('.');
     const val = path.reduce((pv, curr) => pv?.[curr], this.configMapSource);
     this.configMapCached.set(cfgPath, val);
-    return val ? String(val) : null;
+    return val ? String(val) : defaultVal;
+  }
+
+  getInt(cfgPath: string, defaultVal: number = 0): number {
+    const val = this.get(cfgPath);
+    return val ? Number(val) : defaultVal;
   }
 }

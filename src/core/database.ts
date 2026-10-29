@@ -1,8 +1,8 @@
 import 'dotenv/config';
 import { Disposable, injectable, singleton } from 'tsyringe';
 import { PrismaBetterSqlite3 } from '@prisma/adapter-better-sqlite3';
-import { PrismaClient } from '../generated/prisma/client';
-import { Config } from '@isla-bot/core';
+import { PrismaClient } from '../../generated/prisma/client';
+import { Config } from './config';
 
 export const DATABASE_TOKEN = Symbol('DATABASE_TOKEN');
 

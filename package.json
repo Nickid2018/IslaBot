@@ -1,14 +1,40 @@
 {
-  "name": "${PROJECT_NAME}",
+  "name": "@isla-bot/mono",
   "version": "1.0.0",
   "description": "",
-  "main": "dist/index.js",
+  "keywords": [],
+  "author": "Nickid2018",
+  "license": "MIT",
+  "devEngines": {
+    "packageManager": {
+      "name": "pnpm",
+      "version": "12.16.1",
+      "onFail": "download"
+    }
+  },
   "scripts": {
-    "build": "tsc"
+    "dev": "ttsx src/main.ts"
   },
-  "dependencies": {},
   "devDependencies": {
-    "typescript": "^6.0.3"
+    "@types/better-sqlite3": "^9.6.0",
+    "@types/node": "^26.6.5",
+    "prettier": "^3.3.1",
+    "prisma": "^7.10.1",
+    "ttsc": "^0.34.2",
+    "typescript": "^7.0.2"
   },
-  "private": true
+  "dependencies": {
+    "@prisma/adapter-better-sqlite3": "^7.10.1",
+    "@prisma/client": "^7.10.1",
+    "dotenv": "^18.0.9",
+    "node-napcat-ts": "^0.4.25",
+    "pino": "^10.4.0",
+    "pino-pretty": "^13.2.0",
+    "pino-roll": "^4.0.0",
+    "reflect-metadata": "^0.2.2",
+    "tsyringe": "^4.10.0",
+    "yaml": "^2.9.1"
+  },
+  "packageManager": "pnpm@12.16.1",
+  "type": "module"
 }

@@ -15,6 +15,7 @@ datasource db {
 enum PermissionLevel {
   SYSOP
   ADMIN
+  NORMAL
   SEMIBANNED
   BANNED
 }
@@ -22,5 +23,6 @@ enum PermissionLevel {
 model Permissions {
   id    String          @id
   level PermissionLevel
-  endAt DateTime
+
+  @@map("permissions")
 }

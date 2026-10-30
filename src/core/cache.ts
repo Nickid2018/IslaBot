@@ -1,4 +1,5 @@
 import { Disposable, injectable, singleton } from 'tsyringe';
+import { clearInterval } from 'node:timers';
 
 export const CACHE_TOKEN = Symbol('CACHE_TOKEN');
 
@@ -6,6 +7,7 @@ export interface ICache extends Disposable {
   set(key: string, value: any, ttl?: number): Promise<void>;
   get<T>(key: string): Promise<T | undefined>;
   delete(key: string): Promise<void>;
+  listPrefix(key: string): Promise<string[]>;
 }
 
 type DefaultMemoryCacheEntry = {
@@ -45,6 +47,10 @@ class DefaultMemoryCache implements ICache {
       value,
       timeExpired: ttl ? Date.now() + ttl : Number.MAX_SAFE_INTEGER,
     });
+  }
+
+  async listPrefix(key: string) {
+    return [...this.cacheMap.keys()].filter(k => k.startsWith(key));
   }
 
   dispose(): void {

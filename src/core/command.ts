@@ -6,10 +6,12 @@ import {
   ICommandProvider,
 } from '../api/command';
 import { Logger } from './logger';
+import { Features } from './features';
 
 export class CommandResolver {
   constructor(
     private readonly provider: IProvider,
+    private readonly features: Features,
     private readonly logger: Logger,
   ) {
     provider.listen(this.listen);
@@ -21,6 +23,7 @@ export class CommandResolver {
     msgId: string,
     message: Message,
   ) => {
+    if (!this.features.groupEnabled(scope)) return;
     const commandProviders = container.resolveAll<ICommandProvider>(
       COMMAND_PROVIDER_TOKEN,
     );

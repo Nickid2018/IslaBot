@@ -11,13 +11,18 @@ export const LEVELS_INDEX = {
   [PermissionLevel.BANNED]: 1,
 };
 
+let initialized = false;
+
 @injectable()
 export class Permission {
   constructor(
     private readonly db: Database,
     @inject(CACHE_TOKEN) private readonly cache: ICache,
   ) {
-    this.setPermission('console:user:0', PermissionLevel.SYSOP);
+    if (!initialized) {
+      this.setPermission('console:user:0', PermissionLevel.SYSOP);
+      initialized = true;
+    }
   }
 
   async getPermission(target: string) {

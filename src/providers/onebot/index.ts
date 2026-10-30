@@ -157,7 +157,7 @@ export class ProviderOnebot implements IProvider {
                 name: m.data.summary,
               } satisfies ImageMessage;
             case 'at':
-              return { type: 'at', target: m.data.qq } satisfies AtMessage;
+              return { type: 'at', target: `user:${m.data.qq}` } satisfies AtMessage;
           }
           return null;
         })

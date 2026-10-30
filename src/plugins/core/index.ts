@@ -22,11 +22,13 @@ import {
   text,
 } from '../../providers';
 import { Logger } from '../../core/logger';
+import { Features } from '../../core/features';
 
 @injectable({ token: COMMAND_PROVIDER_TOKEN })
 export class CoreCommands implements ICommandProvider {
   constructor(
     private readonly permission: Permission,
+    private readonly features: Features,
     private readonly logger: Logger,
   ) {}
 
@@ -100,9 +102,85 @@ export class CoreCommands implements ICommandProvider {
     return COMMAND_CAUGHT;
   }
 
+  @regex(/^~group enable (.*)$/)
+  @permission(PermissionLevel.SYSOP)
+  async enableGroup(
+    provider: IProvider,
+    _: Target,
+    scope: Target,
+    __: string,
+    ___: Message,
+    match?: RegExpMatchArray,
+  ) {
+    if (!match) return COMMAND_SKIPPED;
+    const group = `${provider.id()}:${match[1].trim()}`;
+    await this.features.enableGroup(group);
+    await provider.send(scope, text(`会话 ${group} 已启用`));
+    return COMMAND_CAUGHT;
+  }
+
+  @regex(/^~group disable (.*)$/)
+  @permission(PermissionLevel.SYSOP)
+  async disableGroup(
+    provider: IProvider,
+    _: Target,
+    scope: Target,
+    __: string,
+    ___: Message,
+    match?: RegExpMatchArray,
+  ) {
+    if (!match) return COMMAND_SKIPPED;
+    const group = `${provider.id()}:${match[1].trim()}`;
+    await this.features.disableGroup(group);
+    await provider.send(scope, text(`会话 ${group} 已禁用`));
+    return COMMAND_CAUGHT;
+  }
+
+  @regex(/^~feature enable (.*)$/)
+  @permission(PermissionLevel.ADMIN)
+  async enableFeature(
+    provider: IProvider,
+    _: Target,
+    scope: Target,
+    __: string,
+    ___: Message,
+    match?: RegExpMatchArray,
+  ) {
+    if (!match) return COMMAND_SKIPPED;
+    const group = `${provider.id()}:${scope}`;
+    const feature = match[1].trim();
+    await this.features.enableFeature(group, feature);
+    await provider.send(scope, text(`会话 ${group} 已启用功能 ${feature}`));
+    return COMMAND_CAUGHT;
+  }
+
+  @regex(/^~feature disable (.*)$/)
+  @permission(PermissionLevel.ADMIN)
+  async disableFeature(
+    provider: IProvider,
+    _: Target,
+    scope: Target,
+    __: string,
+    ___: Message,
+    match?: RegExpMatchArray,
+  ) {
+    if (!match) return COMMAND_SKIPPED;
+    const group = `${provider.id()}:${scope}`;
+    const feature = match[1].trim();
+    await this.features.disableFeature(group, feature);
+    await provider.send(scope, text(`会话 ${group} 已禁用功能 ${feature}`));
+    return COMMAND_CAUGHT;
+  }
+
   commands() {
-    return [this.exit, this.permissionGet, this.permissionSet].map((i) =>
-      i.bind(this),
-    );
+    return [
+      this.exit,
+      this.permissionGet,
+      this.permissionSet,
+      this.enableGroup,
+      this.disableGroup,
+      this.enableFeature,
+      this.disableFeature,
+    ].map((i) => i.bind(this));
   }
 }

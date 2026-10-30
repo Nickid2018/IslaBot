@@ -1,6 +1,7 @@
 import { IProvider, Message, Target } from '../providers';
 import { PermissionLevel } from '../../generated/prisma/enums';
 import { Permission } from '../core/permission';
+import { Features } from '../core/features';
 
 export const COMMAND_PROVIDER_TOKEN = Symbol('COMMAND_PROVIDER_TOKEN');
 export const COMMAND_SKIPPED = Symbol('COMMAND_SKIPPED');
@@ -29,6 +30,29 @@ export function predicate(
     const originalMethod = descriptor.value;
     descriptor.value = async function (...args: any[]) {
       if (!(await pred())) return COMMAND_SKIPPED;
+      return await originalMethod.apply(this, args);
+    };
+    return descriptor;
+  };
+}
+
+export function feature(
+  flag: string,
+  defaultVal: boolean = false,
+): MethodDecorator {
+  return function (
+    _target: any,
+    _propertyKey: string | symbol,
+    descriptor: PropertyDescriptor,
+  ) {
+    const originalMethod = descriptor.value;
+    descriptor.value = async function (...args: any[]) {
+      const provider = args[0] as IProvider;
+      const scope = args[2] as string;
+      const pScope = `${provider.id()}:${scope}`;
+      const convert = this as { features: Features };
+      if (!(await convert.features.featureEnabled(pScope, flag, defaultVal)))
+        return COMMAND_SKIPPED;
       return await originalMethod.apply(this, args);
     };
     return descriptor;
@@ -73,7 +97,10 @@ export function regex(regex: RegExp, first: boolean = true): MethodDecorator {
       if (candidates.length === 0) return;
       const allowed = first
         ? candidates[0].match(regex)
-        : candidates.map((m) => m.match(regex)).filter(p => !!p).at(0);
+        : candidates
+            .map((m) => m.match(regex))
+            .filter((p) => !!p)
+            .at(0);
       if (!allowed) return COMMAND_SKIPPED;
       args.push(allowed);
       return await originalMethod.apply(this, args);

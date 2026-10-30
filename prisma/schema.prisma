@@ -26,3 +26,38 @@ model Permissions {
 
   @@map("permissions")
 }
+
+model Groups {
+  id      String  @id
+  enabled Boolean @default(false)
+
+  @@map("groups")
+}
+
+model FeatureEnables {
+  id      Int     @id @default(autoincrement())
+  scope   String
+  feature String
+  enabled Boolean @default(false)
+
+  @@unique([scope, feature])
+  @@index([scope])
+  @@map("feature_enables")
+}
+
+model StartWikis {
+  scope String @id
+  start String
+
+  @@map("start_wikis")
+}
+
+model ScopeInterwiki {
+  id     Int    @id @default(autoincrement())
+  scope  String
+  prefix String
+  url    String
+
+  @@unique([scope, prefix])
+  @@map("scope_interwikis")
+}

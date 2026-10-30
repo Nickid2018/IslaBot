@@ -48,8 +48,9 @@ export class InterwikiStorage {
             if (!this.wikiInstances.has(url))
               this.wikiInstances.set(url, new WikiInstance(this.logger, url));
             return this.wikiInstances.get(url)!;
-          } catch (e) {
-            return url;
+          } catch (err) {
+            this.logger.error(err);
+            return e.url;
           }
         })(),
       ),

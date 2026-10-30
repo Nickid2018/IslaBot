@@ -7,6 +7,9 @@ export const META_INFO_QUERY = encodeURI(
 export const PAGE_INFO_QUERY = encodeURI(
   '?action=query&format=json&prop=info|imageinfo|pageprops|templates&ppprop=disambiguation&iiprop=url|mime&redirects=1&titles=',
 );
+export const PAGE_INFO_QUERY_MOEGIRL = encodeURI(
+  '?action=query&format=json&prop=info|pageprops|templates&ppprop=disambiguation&iiprop=url|mime&redirects=1&titles=',
+);
 export const PAGE_PARSE = encodeURI(
   '?action=parse&format=json&prop=wikitext&page=',
 );
@@ -80,8 +83,9 @@ export class WikiInstance {
         this.articleURL = result.query?.general?.articlepath || '';
         this.scriptURL = result.query?.general?.script || '';
         this.mainPageName = result.query?.general?.mainpage || '';
-        Object.entries(result.query?.namespaces || {}).forEach((e: [string, any]) =>
-          this.namespaces.set(e[1]['*'].toLowerCase(), e[1].id),
+        Object.entries(result.query?.namespaces || {}).forEach(
+          (e: [string, any]) =>
+            this.namespaces.set(e[1]['*'].toLowerCase(), e[1].id),
         );
         result.query?.namespacealiases?.forEach?.((e: any) =>
           this.namespaces.set(e['*'].toLowerCase(), e.id),
@@ -126,7 +130,12 @@ export class WikiInstance {
     if (title.match(/\d{1.3}(\.\d{1,3}){3}/))
       return { type: 'normal', content: '匿名用户页' };
 
-    const pageQueryUrl = this.apiURL + PAGE_INFO_QUERY + encodeURI(query);
+    const pageQueryUrl =
+      this.apiURL +
+      (this.apiURL.includes('moegirl')
+        ? PAGE_INFO_QUERY_MOEGIRL
+        : PAGE_INFO_QUERY) +
+      encodeURI(query);
     const pageDataResp = await retryFetch(pageQueryUrl, 3);
     if (!pageDataResp.ok) {
       this.logger.warn(

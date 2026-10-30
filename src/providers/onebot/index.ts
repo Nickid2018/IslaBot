@@ -163,6 +163,8 @@ export class ProviderOnebot implements IProvider {
         })
         .filter((m) => !!m);
       if (messages.length === 0) return;
+      this.logger.debug(`received onebot message event ${event}`);
+      this.logger.debug(`parsed content = ${messages}`);
       callback(
         target,
         scope,

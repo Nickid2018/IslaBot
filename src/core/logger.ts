@@ -12,6 +12,7 @@ export class Logger {
         frequency: 'daily',
         size: '10m',
         mkdir: true,
+        level: process.env.LOG_LEVEL || 'info',
       },
     },
     formatters: {

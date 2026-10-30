@@ -113,7 +113,7 @@ export class CoreCommands implements ICommandProvider {
     match?: RegExpMatchArray,
   ) {
     if (!match) return COMMAND_SKIPPED;
-    const group = `${provider.id()}:${match[1].trim()}`;
+    const group = match[1];
     await this.features.enableGroup(group);
     await provider.send(scope, text(`会话 ${group} 已启用`));
     return COMMAND_CAUGHT;
@@ -130,7 +130,7 @@ export class CoreCommands implements ICommandProvider {
     match?: RegExpMatchArray,
   ) {
     if (!match) return COMMAND_SKIPPED;
-    const group = `${provider.id()}:${match[1].trim()}`;
+    const group = match[1];
     await this.features.disableGroup(group);
     await provider.send(scope, text(`会话 ${group} 已禁用`));
     return COMMAND_CAUGHT;

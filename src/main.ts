@@ -3,6 +3,7 @@ import './core';
 import { container } from 'tsyringe';
 import { IProvider, PROVIDER_TOKEN } from './providers';
 import { CommandResolver } from './core/command';
+import { Logger } from './core/logger';
 
 export const STOP_CONTROLLER = new AbortController();
 
@@ -18,9 +19,10 @@ process.stdin.resume();
   await import('./plugins');
   await import('./providers');
 
+  const logger = container.resolve(Logger);
   const providers = container.resolveAll<IProvider>(PROVIDER_TOKEN);
   providers.forEach((p) => p.init());
-  providers.map((p) => new CommandResolver(p));
+  providers.map((p) => new CommandResolver(p, logger));
 
   await new Promise((r) => STOP_CONTROLLER.signal.addEventListener('abort', r));
   console.log('IslaCore is closing');

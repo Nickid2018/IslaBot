@@ -3,7 +3,7 @@ import { Database } from './database';
 import { PermissionLevel } from '../../generated/prisma/enums';
 import { CACHE_TOKEN, ICache } from './cache';
 
-const LEVELS = {
+export const LEVELS_INDEX = {
   [PermissionLevel.SYSOP]: 5,
   [PermissionLevel.ADMIN]: 4,
   [PermissionLevel.NORMAL]: 3,
@@ -34,7 +34,7 @@ export class Permission {
   }
 
   async hasPermission(target: string, level: PermissionLevel) {
-    return LEVELS[await this.getPermission(target)] >= LEVELS[level];
+    return LEVELS_INDEX[await this.getPermission(target)] >= LEVELS_INDEX[level];
   }
 
   async setPermission(target: string, permission: PermissionLevel) {

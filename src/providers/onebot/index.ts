@@ -14,6 +14,7 @@ import {
 import { Config } from '../../core/config';
 import { injectable, singleton } from 'tsyringe';
 import { NCWebsocket, SendMessageSegment, Structs } from 'node-napcat-ts';
+import { Logger } from '../../core/logger';
 
 @injectable({ token: PROVIDER_TOKEN })
 @singleton()
@@ -25,8 +26,10 @@ export class ProviderOnebot implements IProvider {
   private sendSeq: number = 0;
   private lastSendSeq: number = 0;
 
-  constructor(private readonly cfg: Config) {
-  }
+  constructor(
+    private readonly cfg: Config,
+    private readonly logger: Logger,
+  ) {}
 
   init(): void {
     const url = this.cfg.get('onebot.url');
@@ -36,6 +39,19 @@ export class ProviderOnebot implements IProvider {
         accessToken: this.cfg.get('onebot.secret') || undefined,
         reconnection: { enable: true },
       });
+      this.ws.on('socket.open', (err) =>
+        this.logger.info(`onebot socket opened`),
+      );
+      this.ws.on('socket.error', (err) =>
+        this.logger.error(
+          `onebot socket error: type=${err.error_type}, info=${err}`,
+        ),
+      );
+      this.ws.on('socket.close', (res) =>
+        this.logger.warn(
+          `onebot socket closed: code=${res.code}, reason=${res.reason}`,
+        ),
+      );
       this.connected = this.ws.connect();
     }
   }
@@ -48,7 +64,7 @@ export class ProviderOnebot implements IProvider {
     await this.ready();
 
     if (this.sendSeq - this.lastSendSeq >= 10) {
-      console.warn(
+      this.logger.warn(
         `Send queue limit exceeded, message will be discard, content = ${message}`,
       );
       return null;

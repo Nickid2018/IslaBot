@@ -73,8 +73,9 @@ export function regex(regex: RegExp, first: boolean = true): MethodDecorator {
       if (candidates.length === 0) return;
       const allowed = first
         ? candidates[0].match(regex)
-        : candidates.some((m) => m.match(regex));
+        : candidates.map((m) => m.match(regex)).filter(p => !!p).at(0);
       if (!allowed) return COMMAND_SKIPPED;
+      args.push(allowed);
       return await originalMethod.apply(this, args);
     };
     return descriptor;

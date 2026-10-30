@@ -18,6 +18,22 @@ export function text(text: string): TextMessage {
   return { type: 'text', content: text };
 }
 
+export function findFirstText(message: Message) {
+  if (!Array.isArray(message)){
+    if (message.type !== 'text') return '';
+    else return message.content;
+  }
+  return message.find(m => m.type === 'text')?.content || '';
+}
+
+export function findFirstType(message: Message, type: NormalMessage['type']) {
+  if (!Array.isArray(message)) {
+    if (message.type !== type) return undefined;
+    else return message;
+  }
+  return message.find((m) => m.type === type);
+}
+
 export type Target = `${'user' | 'group'}:${string}`;
 
 export function isUser(target: Target) {

@@ -5,9 +5,13 @@ import {
   COMMAND_PROVIDER_TOKEN,
   ICommandProvider,
 } from '../api/command';
+import { Logger } from './logger';
 
 export class CommandResolver {
-  constructor(private readonly provider: IProvider) {
+  constructor(
+    private readonly provider: IProvider,
+    private readonly logger: Logger,
+  ) {
     provider.listen(this.listen);
   }
 
@@ -22,11 +26,15 @@ export class CommandResolver {
     );
     const commands = commandProviders.map((c) => c.commands()).flat();
     for (const command of commands) {
-      if (
-        (await command(this.provider, target, scope, msgId, message)) ===
-        COMMAND_CAUGHT
-      )
-        return;
+      try {
+        if (
+          (await command(this.provider, target, scope, msgId, message)) ===
+          COMMAND_CAUGHT
+        )
+          return;
+      } catch (e) {
+        this.logger.error(e);
+      }
     }
   };
 }

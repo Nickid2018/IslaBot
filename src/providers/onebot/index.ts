@@ -71,7 +71,7 @@ export class ProviderOnebot implements IProvider {
     }
 
     const nowSeq = this.sendSeq++;
-    while ((await this.lastSendTimer) === nowSeq);
+    while ((await this.lastSendTimer) !== nowSeq);
     this.lastSendTimer = new Promise((r) =>
       setTimeout(
         () => r(nowSeq + 1),

@@ -1,5 +1,6 @@
 import {
   AtMessage,
+  ForwardPackedMessage,
   getId,
   ImageMessage,
   IProvider,
@@ -39,9 +40,9 @@ export class ProviderOnebot implements IProvider {
         accessToken: this.cfg.get('onebot.secret') || undefined,
         reconnection: { enable: true },
       });
-      this.ws.on('socket.open', (err) =>
-        this.logger.info(`onebot socket opened`),
-      );
+      this.ws.on('socket.open', (err) => {
+        this.logger.info(`onebot socket opened`);
+      });
       this.ws.on('socket.error', (err) =>
         this.logger.error(
           `onebot socket error: type=${err.error_type}, info=${err}`,
@@ -60,28 +61,7 @@ export class ProviderOnebot implements IProvider {
     return this.connected ?? Promise.reject<void>();
   }
 
-  async send(target: Target, message: Message): Promise<string | null> {
-    await this.ready();
-
-    if (this.sendSeq - this.lastSendSeq >= 10) {
-      this.logger.warn(
-        `Send queue limit exceeded, message will be discard, content = ${message}`,
-      );
-      return null;
-    }
-
-    const nowSeq = this.sendSeq++;
-    while ((await this.lastSendTimer) !== nowSeq);
-    this.lastSendTimer = new Promise((r) =>
-      setTimeout(
-        () => r(nowSeq + 1),
-        this.cfg.getInt('onebot.limit.gap', 10000) +
-          (2 * Math.random() - 1) *
-            this.cfg.getInt('onebot.limit.jitter', 2500),
-      ),
-    );
-    this.lastSendSeq = nowSeq;
-
+  private construct(message: Message) {
     const structs: SendMessageSegment[] = [];
     const _construct = (message: Message) => {
       if (Array.isArray(message)) return message.forEach(_construct);
@@ -101,26 +81,65 @@ export class ProviderOnebot implements IProvider {
       }
     };
     _construct(message);
+    return structs;
+  }
 
-    if (isUser(target)) {
-      return (
-        (
-          await this.ws?.send_private_msg({
-            user_id: Number(getId(target)),
-            message: structs,
-          })
-        )?.message_id?.toString() || ''
-      );
-    } else {
-      return (
-        (
-          await this.ws?.send_group_msg({
-            group_id: Number(getId(target)),
-            message: structs,
-          })
-        )?.message_id?.toString() || ''
-      );
+  private async sendWait() {
+    await this.ready();
+
+    if (this.sendSeq - this.lastSendSeq >= 10) {
+      this.logger.warn(`Send queue limit exceeded, message will be discard`);
+      return false;
     }
+
+    const nowSeq = this.sendSeq++;
+    while ((await this.lastSendTimer) !== nowSeq);
+    this.lastSendTimer = new Promise((r) =>
+      setTimeout(
+        () => r(nowSeq + 1),
+        this.cfg.getInt('onebot.limit.gap', 10000) +
+          (2 * Math.random() - 1) *
+            this.cfg.getInt('onebot.limit.jitter', 2500),
+      ),
+    );
+    this.lastSendSeq = nowSeq;
+    return true;
+  }
+
+  async send(target: Target, message: Message) {
+    const _countTexts = (message: Message): number => {
+      if (Array.isArray(message))
+        return message.map(_countTexts).reduce((a, b) => a + b, 0);
+      return message.type === 'text' ? message.content.length : 0;
+    };
+    if (_countTexts(message) > this.cfg.getInt('onebot.send.max_len', 300))
+      return await this.sendForward(target, [message]);
+
+    if (!(await this.sendWait())) return;
+    const structs = this.construct(message);
+    const sendPayload = isUser(target)
+      ? { user_id: Number(getId(target)), message: structs }
+      : { group_id: Number(getId(target)), message: structs };
+    return (await this.ws?.send_msg(sendPayload))?.message_id?.toString();
+  }
+
+  async sendForward(target: Target, message: ForwardPackedMessage) {
+    if (!(await this.sendWait())) return;
+    const nodes = message
+      .map(this.construct)
+      .map((segment) =>
+        Structs.customNode(
+          segment,
+          this.cfg.getInt('onebot.self.id', 1145141919),
+          this.cfg.get('onebot.self.nickname', 'Forward Message')!,
+        ),
+      );
+    const sendPayload = isUser(target)
+      ? { user_id: Number(getId(target)), message: nodes }
+      : { group_id: Number(getId(target)), message: nodes };
+    return (
+      await this.ws?.send_forward_msg(sendPayload)
+    )?.message_id?.toString();
   }
 
   listen(
@@ -157,7 +176,10 @@ export class ProviderOnebot implements IProvider {
                 name: m.data.summary,
               } satisfies ImageMessage;
             case 'at':
-              return { type: 'at', target: `user:${m.data.qq}` } satisfies AtMessage;
+              return {
+                type: 'at',
+                target: `user:${m.data.qq}`,
+              } satisfies AtMessage;
           }
           return null;
         })

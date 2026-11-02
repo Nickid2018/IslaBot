@@ -16,3 +16,6 @@ yarn-error.log*
 /generated/prisma
 config.yaml
 logs
+
+firefox/
+chrome/

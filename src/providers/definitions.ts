@@ -14,16 +14,22 @@ export type ReplyMessage = { type: 'reply'; target: string };
 export type MessageChain = NormalMessage[];
 export type Message = NormalMessage | MessageChain;
 
+export type ForwardPackedMessage = Message[];
+
 export function text(text: string): TextMessage {
   return { type: 'text', content: text };
 }
 
+export function image(content: string | Buffer, name?: string): ImageMessage {
+  return { type: 'image', content, name: name || '*filtered*' };
+}
+
 export function findFirstText(message: Message) {
-  if (!Array.isArray(message)){
+  if (!Array.isArray(message)) {
     if (message.type !== 'text') return '';
     else return message.content;
   }
-  return message.find(m => m.type === 'text')?.content || '';
+  return message.find((m) => m.type === 'text')?.content || '';
 }
 
 export function findFirstType(message: Message, type: NormalMessage['type']) {
@@ -52,7 +58,11 @@ export interface IProvider {
   id(): string;
   init(): void;
   ready(): Promise<void>;
-  send(target: Target, message: Message): Promise<string | null>;
+  send(target: Target, message: Message): Promise<string | undefined>;
+  sendForward(
+    target: Target,
+    message: ForwardPackedMessage,
+  ): Promise<string | undefined>;
   listen(
     callback: (
       target: Target,

@@ -2,7 +2,6 @@ import { injectable, singleton } from 'tsyringe';
 import { retryFetch, uaFetch, WikiInstance } from './wiki';
 import { JSDOM } from 'jsdom';
 import { Logger } from '../../core/logger';
-import * as url from 'node:url';
 
 export const INTERWIKI_QUERY = encodeURI(
   '?action=query&format=json&meta=siteinfo&siprop=interwikimap',
@@ -42,7 +41,10 @@ export class InterwikiStorage {
             if (!dom) return e.url;
             const meta = dom.querySelector('link[rel=EditURI]');
             if (!meta) return e.url;
-            const apiURL = new URL((meta as HTMLLinkElement).href);
+            const urlStr = (meta as HTMLLinkElement).href;
+            const apiURL = new URL(
+              urlStr.startsWith('//') ? `https:${urlStr}` : urlStr,
+            );
             apiURL.search = '';
             const url = apiURL.toString();
             if (!this.wikiInstances.has(url))

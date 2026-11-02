@@ -13,9 +13,10 @@ import { Features } from '../../core/features';
 import { Logger } from '../../core/logger';
 import { InterwikiStorage } from './interwiki';
 import { Database } from '../../core/database';
-import { IProvider, Message, Target, text } from '../../providers';
+import { image, IProvider, Message, Target, text } from '../../providers';
 import { PermissionLevel } from '../../../generated/prisma/enums';
 import { Permission } from '../../core/permission';
+import { shouldRenderPage } from './wiki';
 
 export const ISLA_BOT_UA = 'IslaBot Wiki Plugin/1.0';
 
@@ -34,14 +35,14 @@ export class WikiCommands implements ICommandProvider {
   @permission(PermissionLevel.NORMAL)
   async doWikiInline(
     provider: IProvider,
-    target: Target,
+    _: Target,
     scope: Target,
-    msgId: string,
-    message: Message,
+    __: string,
+    ___: Message,
     match?: RegExpMatchArray,
   ): Promise<CommandResult> {
     if (!match) return COMMAND_SKIPPED;
-    return await this.doWiki(provider, target, scope, msgId, message, match[1]);
+    return await this.doWiki(provider, scope, match[1]);
   }
 
   @regex(/^~wiki (.+)$/)
@@ -49,14 +50,14 @@ export class WikiCommands implements ICommandProvider {
   @permission(PermissionLevel.NORMAL)
   async doWikiGlobal(
     provider: IProvider,
-    target: Target,
+    _: Target,
     scope: Target,
-    msgId: string,
-    message: Message,
+    __: string,
+    ___: Message,
     match?: RegExpMatchArray,
   ): Promise<CommandResult> {
     if (!match) return COMMAND_SKIPPED;
-    return await this.doWiki(provider, target, scope, msgId, message, match[1]);
+    return await this.doWiki(provider, scope, match[1]);
   }
 
   @regex(/^~wikiadd ([^ ]+) (.+)$/)
@@ -132,10 +133,7 @@ export class WikiCommands implements ICommandProvider {
 
   async doWiki(
     provider: IProvider,
-    target: Target,
     scope: Target,
-    msgId: string,
-    message: Message,
     query: string,
   ): Promise<CommandResult> {
     const globalScope = `${provider.id()}:${scope}`;
@@ -153,8 +151,7 @@ export class WikiCommands implements ICommandProvider {
     );
 
     const sectionSplit = query.indexOf('#');
-    const section =
-      sectionSplit > -1 ? query.substring(0, sectionSplit + 1) : '';
+    const section = sectionSplit > -1 ? query.substring(sectionSplit + 1) : '';
     if (sectionSplit > -1) query = query.substring(0, sectionSplit);
 
     let splitIndex = query.indexOf(':');
@@ -214,7 +211,9 @@ export class WikiCommands implements ICommandProvider {
     this.logger.debug(pageInfo);
 
     let content = pageInfo.content;
-    if (pageInfo.url) content += '\n' + pageInfo.url.toString();
+    if (pageInfo.type === 'disambiguation') {
+      content = `消歧义页面`;
+    }
     if (pageInfo.redirect_to) {
       let redirectInfo = `页面重定向 -> ${pageInfo.redirect_to}`;
       if (pageInfo.redirect_frag) redirectInfo += `#${pageInfo.redirect_frag}`;
@@ -223,7 +222,39 @@ export class WikiCommands implements ICommandProvider {
     } else if (pageInfo.normalized_to) {
       content = `页面标准化 -> ${pageInfo.normalized_to}\n${content}`;
     }
+    if (pageInfo.files) {
+      content += '\n文件列表：';
+      pageInfo.files.forEach((file, i) => {
+        content += `\n${i + 1}: ${file.url} (${file.mime})`;
+      });
+    }
+    if (pageInfo.type === 'section_not_found' && pageInfo.sections) {
+      content += '\n可查找的章节：';
+      pageInfo.sections.forEach((section, i) => {
+        content += `\n${i + 1}: ${section}`;
+      });
+    }
+    if (pageInfo.url) content += '\n' + pageInfo.url.toString();
     await provider.send(scope, text(content));
+
+    const featureFlag = `wiki.render.[${wikiInstance.apiURL}]`;
+    const pScope = `${provider.id()}:${scope}`;
+    if (!(await this.features.featureEnabled(pScope, featureFlag)))
+      return COMMAND_CAUGHT;
+    if (pageInfo.files) {
+      const img = pageInfo.files.filter((i) => i.mime.startsWith('image'));
+      if (img.length === 0) return COMMAND_CAUGHT;
+      if (img.length === 1) await provider.send(scope, image(img[0].url));
+      else
+        await provider.sendForward(
+          scope,
+          img.map((i) => image(i.url)),
+        );
+      return COMMAND_CAUGHT;
+    }
+
+    if (!shouldRenderPage(pageInfo, section) && !query.endsWith('#'))
+      return COMMAND_CAUGHT;
 
     return COMMAND_CAUGHT;
   }
@@ -234,7 +265,7 @@ export class WikiCommands implements ICommandProvider {
       this.doWikiGlobal,
       this.addWiki,
       this.removeWiki,
-      this.setStartWiki
+      this.setStartWiki,
     ].map((f) => f.bind(this));
   }
 }

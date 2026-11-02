@@ -30,6 +30,7 @@ export type PageInfo = {
   multiple?: boolean;
   files?: { url: string; mime: string }[];
   sections?: string[];
+  sectionId?: string;
 };
 
 export function uaFetch(input: string | URL | Request, init?: RequestInit) {
@@ -284,9 +285,10 @@ export class WikiInstance {
     }
 
     let parseUrl = this.apiURL + PAGE_PARSE + encodeURI(descriptionTitle);
+    let sectionId = '';
     if (section) {
       const sectionResp = await retryFetch(
-        this.apiURL + PAGE_PARSE + encodeURI(descriptionTitle),
+        this.apiURL + PAGE_PARSE_SECTIONS + encodeURI(descriptionTitle),
         3,
       );
       if (!sectionResp.ok) {
@@ -301,7 +303,7 @@ export class WikiInstance {
       }
 
       const sectionData = await sectionResp.json();
-      const sectionId = sectionData?.parse?.sections?.find?.(
+      sectionId = sectionData?.parse?.sections?.find?.(
         (e: any) => e.anchor === section,
       )?.index;
       if (!sectionId)
@@ -338,6 +340,18 @@ export class WikiInstance {
       type: doc || module ? 'documentation' : 'normal',
       content: docWikitext,
       url: await this.resolveScript(pageId, section),
+      sectionId,
     };
   }
+}
+
+export function shouldRenderPage(pageInfo: PageInfo, section: string) {
+  if (!pageInfo.url) return false;
+  if (
+    pageInfo.type === 'special' ||
+    pageInfo.type === 'documentation' ||
+    pageInfo.type === 'disambiguation'
+  )
+    return true;
+  return !!(pageInfo.type === 'normal' && (section || pageInfo.redirect_frag));
 }

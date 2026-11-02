@@ -1,5 +1,11 @@
 import { injectable, singleton } from 'tsyringe';
-import { IProvider, Message, PROVIDER_TOKEN, Target } from '../definitions';
+import {
+  ForwardPackedMessage,
+  IProvider,
+  Message,
+  PROVIDER_TOKEN,
+  Target,
+} from '../definitions';
 import * as readline from 'node:readline/promises';
 import { stdin as input, stdout as output } from 'node:process';
 import { STOP_CONTROLLER } from '../../main';
@@ -39,9 +45,14 @@ export class ProviderConsole implements IProvider {
     return Promise.resolve();
   }
 
-  async send(_: Target, message: Message): Promise<string | null> {
+  async send(_: Target, message: Message) {
     console.log(message);
-    return null;
+    return undefined;
+  }
+
+  async sendForward(_: Target, message: ForwardPackedMessage) {
+    console.log(message);
+    return undefined;
   }
 
   getCapability(capability: string): boolean {

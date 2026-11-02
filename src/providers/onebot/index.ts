@@ -131,6 +131,7 @@ export class ProviderOnebot implements IProvider {
     const sendPayload = isUser(target)
       ? { user_id: Number(getId(target)), message: structs }
       : { group_id: Number(getId(target)), message: structs };
+    this.logger.info('sending single message');
     return (await this.ws?.send_msg(sendPayload))?.message_id?.toString();
   }
 
@@ -150,6 +151,7 @@ export class ProviderOnebot implements IProvider {
     const sendPayload = isUser(target)
       ? { user_id: Number(getId(target)), message: nodes }
       : { group_id: Number(getId(target)), message: nodes };
+    this.logger.info('sending forward message')
     return (
       await this.ws?.send_forward_msg(sendPayload)
     )?.message_id?.toString();

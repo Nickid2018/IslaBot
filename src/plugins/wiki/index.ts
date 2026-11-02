@@ -271,7 +271,7 @@ export class WikiCommands implements ICommandProvider {
       buffer = await this.renderer.shotSection(wiki, finalName, finalSection);
     else buffer = await this.renderer.shotInfobox(pageInfo.url.toString());
 
-    if (buffer) await provider.send(scope, image(buffer, '*filtered*'));
+    if (buffer) await provider.send(scope, image(buffer));
 
     return COMMAND_CAUGHT;
   }

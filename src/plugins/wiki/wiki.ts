@@ -304,7 +304,7 @@ export class WikiInstance {
 
 export function shouldRenderPage(pageInfo: PageInfo) {
   if (!pageInfo.url) return false;
-  return ['special', 'documentation', 'disambiguation', 'normal'].includes(
+  return ['special_page', 'documentation', 'disambiguation', 'normal'].includes(
     pageInfo.type,
   );
 }

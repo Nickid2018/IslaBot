@@ -263,7 +263,7 @@ export class WikiCommands implements ICommandProvider {
       buffer = await this.renderer.shotDocumentation(pageInfo.url.toString());
     else if (pageInfo.type === 'disambiguation')
       buffer = await this.renderer.shotFullPage(pageInfo.url.toString());
-    else if (pageInfo.type === 'special')
+    else if (pageInfo.type === 'special_page')
       buffer = await this.renderer.shotSpecialPage(pageInfo.url.toString());
     else if (query.endsWith('#'))
       buffer = await this.renderer.shotFullPage(pageInfo.url.toString());

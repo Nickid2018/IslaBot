@@ -17,6 +17,7 @@ import { image, IProvider, Message, Target, text } from '../../providers';
 import { PermissionLevel } from '../../../generated/prisma/enums';
 import { Permission } from '../../core/permission';
 import { shouldRenderPage } from './wiki';
+import { WikiRenderer } from './renderer';
 
 @injectable({ token: COMMAND_PROVIDER_TOKEN })
 export class WikiCommands implements ICommandProvider {
@@ -26,6 +27,7 @@ export class WikiCommands implements ICommandProvider {
     private readonly logger: Logger,
     private readonly storage: InterwikiStorage,
     private readonly db: Database,
+    private readonly renderer: WikiRenderer,
   ) {}
 
   @regex(/\[\[(.+?)]]/)
@@ -204,8 +206,8 @@ export class WikiCommands implements ICommandProvider {
       nowWiki = next.apiURL;
     }
 
-    const wikiInstance = this.storage.getWikiInstance(nowWiki);
-    const pageInfo = await wikiInstance.getPageInfo(query, section);
+    const wiki = this.storage.getWikiInstance(nowWiki);
+    const pageInfo = await wiki.getPageInfo(query, section);
     this.logger.debug(pageInfo);
 
     let content = pageInfo.content;
@@ -235,7 +237,7 @@ export class WikiCommands implements ICommandProvider {
     if (pageInfo.url) content += '\n' + pageInfo.url.toString();
     await provider.send(scope, text(content));
 
-    const featureFlag = `wiki.render.[${wikiInstance.apiURL}]`;
+    const featureFlag = `wiki.render.[${wiki.apiURL}]`;
     const pScope = `${provider.id()}:${scope}`;
     if (!(await this.features.featureEnabled(pScope, featureFlag)))
       return COMMAND_CAUGHT;
@@ -246,13 +248,30 @@ export class WikiCommands implements ICommandProvider {
       else
         await provider.sendForward(
           scope,
-          img.map((i) => image(i.url)),
+          img.map((i, n) => image(i.url, n.toString())),
         );
       return COMMAND_CAUGHT;
     }
 
-    if (!shouldRenderPage(pageInfo, section) && !query.endsWith('#'))
+    if ((!shouldRenderPage(pageInfo) && !query.endsWith('#')) || !pageInfo.url)
       return COMMAND_CAUGHT;
+
+    const finalName = pageInfo.normalized_to || pageInfo.redirect_to || query;
+    const finalSection = pageInfo.redirect_frag || section;
+    let buffer: Buffer | null = null;
+    if (pageInfo.type === 'documentation')
+      buffer = await this.renderer.shotDocumentation(pageInfo.url.toString());
+    else if (pageInfo.type === 'disambiguation')
+      buffer = await this.renderer.shotFullPage(pageInfo.url.toString());
+    else if (pageInfo.type === 'special')
+      buffer = await this.renderer.shotSpecialPage(pageInfo.url.toString());
+    else if (query.endsWith('#'))
+      buffer = await this.renderer.shotFullPage(pageInfo.url.toString());
+    else if (finalSection)
+      buffer = await this.renderer.shotSection(wiki, finalName, finalSection);
+    else buffer = await this.renderer.shotInfobox(pageInfo.url.toString());
+
+    if (buffer) await provider.send(scope, image(buffer, '*filtered*'));
 
     return COMMAND_CAUGHT;
   }

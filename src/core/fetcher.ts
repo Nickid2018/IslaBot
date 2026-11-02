@@ -32,7 +32,13 @@ export class Fetcher {
       const resp = await this.fetch(url, init);
       if (!resp.ok) {
         this.logger.warn(
-          { status: resp.status, content: await resp.text() },
+          {
+            status: resp.status,
+            content:
+              resp.status != 404 && resp.status != 403
+                ? await resp.text()
+                : '<dropped>',
+          },
           `failed to fetch ${url}`,
         );
         return null;
@@ -49,7 +55,13 @@ export class Fetcher {
       const resp = await this.fetch(url, init);
       if (!resp.ok) {
         this.logger.warn(
-          { status: resp.status, content: await resp.text() },
+          {
+            status: resp.status,
+            content:
+              resp.status != 404 && resp.status != 403
+                ? await resp.text()
+                : '<dropped>',
+          },
           `failed to fetch ${url}`,
         );
         return null;
@@ -66,7 +78,13 @@ export class Fetcher {
       const resp = await this.fetch(url);
       if (!resp.ok) {
         this.logger.warn(
-          { status: resp.status, content: await resp.text() },
+          {
+            status: resp.status,
+            content:
+              resp.status != 404 && resp.status != 403
+                ? await resp.text()
+                : '<dropped>',
+          },
           `failed to fetch image ${url}`,
         );
         return null;

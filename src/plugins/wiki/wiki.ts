@@ -302,13 +302,9 @@ export class WikiInstance {
   }
 }
 
-export function shouldRenderPage(pageInfo: PageInfo, section: string) {
+export function shouldRenderPage(pageInfo: PageInfo) {
   if (!pageInfo.url) return false;
-  if (
-    pageInfo.type === 'special' ||
-    pageInfo.type === 'documentation' ||
-    pageInfo.type === 'disambiguation'
-  )
-    return true;
-  return !!(pageInfo.type === 'normal' && (section || pageInfo.redirect_frag));
+  return ['special', 'documentation', 'disambiguation', 'normal'].includes(
+    pageInfo.type,
+  );
 }

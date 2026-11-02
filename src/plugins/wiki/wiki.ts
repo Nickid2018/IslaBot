@@ -1,5 +1,5 @@
-import { ISLA_BOT_UA } from './index';
 import { Logger } from '../../core/logger';
+import { Fetcher, retries } from '../../core/fetcher';
 
 export const META_INFO_QUERY = encodeURI(
   '?action=query&format=json&meta=siteinfo&siprop=extensions|general|namespaces|namespacealiases',
@@ -33,29 +33,6 @@ export type PageInfo = {
   sectionId?: string;
 };
 
-export function uaFetch(input: string | URL | Request, init?: RequestInit) {
-  return fetch(input, {
-    ...init,
-    headers: { ...init?.headers, 'User-Agent': ISLA_BOT_UA },
-  });
-}
-
-export function retryFetch(
-  input: string | URL | Request,
-  times: number,
-  init?: RequestInit,
-) {
-  return (async () => {
-    while (--times > 0) {
-      try {
-        const resp = await uaFetch(input, init);
-        if (resp.ok) return resp;
-      } catch (e) {}
-    }
-    return await uaFetch(input, init);
-  })();
-}
-
 export class WikiInstance {
   base: string = '';
   articleURL: string = '';
@@ -64,23 +41,25 @@ export class WikiInstance {
   namespaces: Map<string, number> = new Map<string, number>();
   extensions: string[] = [];
 
+  private readonly retryFetch;
+
   readonly ready: Promise<boolean>;
 
   constructor(
     private readonly logger: Logger,
+    private readonly fetcher: Fetcher,
     readonly apiURL: string,
   ) {
+    const retryFetch = retries(fetcher.fetchJson, 3);
+    this.retryFetch = retryFetch;
     this.ready = (async () => {
       try {
         this.base = 'https://' + new URL(this.apiURL).host;
-        const body = await retryFetch(apiURL + META_INFO_QUERY, 3);
-        if (!body.ok) {
-          logger.warn(
-            `cannot resolve wiki info for ${apiURL}, status=${body.status}, body=${await body.text()}`,
-          );
+        const result = await retryFetch(apiURL + META_INFO_QUERY);
+        if (!result) {
+          logger.warn(`cannot resolve wiki info for ${apiURL}`);
           return false;
         }
-        const result = await body.json();
         this.articleURL = result.query?.general?.articlepath || '';
         this.scriptURL = result.query?.general?.script || '';
         this.mainPageName = result.query?.general?.mainpage || '';
@@ -137,15 +116,12 @@ export class WikiInstance {
         ? PAGE_INFO_QUERY_MOEGIRL
         : PAGE_INFO_QUERY) +
       encodeURI(query);
-    const pageDataResp = await retryFetch(pageQueryUrl, 3);
-    if (!pageDataResp.ok) {
-      this.logger.warn(
-        `cannot search wiki '${query}', status=${pageDataResp.status}, body=${await pageDataResp.text()}`,
-      );
+    const pageData = await this.retryFetch(pageQueryUrl);
+    if (!pageData) {
+      this.logger.warn(`cannot search wiki '${query}'`);
       return { type: 'error', content: '未能查询 wiki' };
     }
 
-    const pageData = await pageDataResp.json();
     const entries = Object.entries(pageData?.query?.pages || {});
     if (entries.length === 0)
       return { type: 'page_not_found', content: '没有找到对应标题的页面' };
@@ -206,14 +182,11 @@ export class WikiInstance {
     let descriptionTitle = query;
 
     if (doc) {
-      const docResp = await retryFetch(
+      const docData = await this.retryFetch(
         this.apiURL + PAGE_PARSE + encodeURI(query),
-        3,
       );
-      if (!docResp.ok) {
-        this.logger.warn(
-          `cannot parse wiki '${query}', status=${pageDataResp.status}, body=${await pageDataResp.text()}`,
-        );
+      if (!docData) {
+        this.logger.warn(`cannot parse wiki '${query}'`);
         return {
           type: 'documentation',
           content: '包含文档的页面（无描述）',
@@ -221,7 +194,6 @@ export class WikiInstance {
         };
       }
 
-      const docData = await docResp.json();
       const docWikitext: string = docData?.parse?.wikitext?.['*'] || '';
       const matcher = docWikitext.match(
         /\{\{[Dd]ocumentation(?:\|([\s\S]+?))?}}/,
@@ -237,14 +209,11 @@ export class WikiInstance {
 
     if (module) {
       descriptionTitle = query + '/doc';
-      const docResp = await retryFetch(
+      const docData = await this.retryFetch(
         this.apiURL + PAGE_INFO_QUERY + encodeURI(descriptionTitle),
-        3,
       );
-      if (!docResp.ok) {
-        this.logger.warn(
-          `cannot search wiki '${query}', status=${docResp.status}, body=${await docResp.text()}`,
-        );
+      if (!docData) {
+        this.logger.warn(`cannot search wiki '${query}'`);
         return {
           type: 'documentation',
           content: '模块页面（无描述）',
@@ -252,7 +221,6 @@ export class WikiInstance {
         };
       }
 
-      const docData = await docResp.json();
       const entries = Object.entries(docData?.query?.pages || {});
       if (entries.length === 0 || (entries[0][1] as any).missing)
         return {
@@ -263,12 +231,10 @@ export class WikiInstance {
     }
 
     if (this.extensions.includes('TextExtracts') && !section) {
-      const descResp = await retryFetch(
+      const descData = await this.retryFetch(
         this.apiURL + TEXT_EXTRACTS + encodeURI(descriptionTitle),
-        3,
       );
-      if (descResp.ok) {
-        const descData = await descResp.json();
+      if (descData) {
         const entries = Object.entries(descData?.query?.pages || {});
         const desc = (entries?.[0]?.[1] as any)?.extract;
         if (desc)
@@ -278,23 +244,18 @@ export class WikiInstance {
             url: await this.resolveScript(pageId, section),
           };
       } else {
-        this.logger.warn(
-          `cannot extract wiki '${query}', status=${descResp.status}, body=${await descResp.text()}`,
-        );
+        this.logger.warn(`cannot extract wiki '${query}'`);
       }
     }
 
     let parseUrl = this.apiURL + PAGE_PARSE + encodeURI(descriptionTitle);
     let sectionId = '';
     if (section) {
-      const sectionResp = await retryFetch(
+      const sectionData = await this.retryFetch(
         this.apiURL + PAGE_PARSE_SECTIONS + encodeURI(descriptionTitle),
-        3,
       );
-      if (!sectionResp.ok) {
-        this.logger.warn(
-          `cannot query wiki '${query}', status=${sectionResp.status}, body=${await sectionResp.text()}`,
-        );
+      if (!sectionData) {
+        this.logger.warn(`cannot query wiki '${query}'`);
         return {
           type: 'section_not_found',
           content: '无法查找章节信息',
@@ -302,7 +263,6 @@ export class WikiInstance {
         };
       }
 
-      const sectionData = await sectionResp.json();
       sectionId = sectionData?.parse?.sections?.find?.(
         (e: any) => e.anchor === section,
       )?.index;
@@ -319,11 +279,9 @@ export class WikiInstance {
       parseUrl += '&section=' + sectionId;
     }
 
-    const docResp = await retryFetch(parseUrl, 3);
-    if (!docResp.ok) {
-      this.logger.warn(
-        `cannot parse wiki '${query}', status=${pageDataResp.status}, body=${await pageDataResp.text()}`,
-      );
+    const docData = await this.retryFetch(parseUrl);
+    if (!docData) {
+      this.logger.warn(`cannot parse wiki '${query}'`);
       return {
         type: 'error',
         content: '获取页面内容失败',
@@ -331,7 +289,6 @@ export class WikiInstance {
       };
     }
 
-    const docData = await docResp.json();
     let docWikitext: string = docData?.parse?.wikitext?.['*'] || '';
     if (section)
       docWikitext = docWikitext.substring(docWikitext.indexOf('\n')).trim();

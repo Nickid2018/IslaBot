@@ -6,7 +6,7 @@ export type TextMessage = { type: 'text'; content: string };
 export type ImageMessage = {
   type: 'image';
   content: string | Buffer;
-  name: string;
+  name?: string;
 };
 export type AtMessage = { type: 'at'; target: string };
 export type ReplyMessage = { type: 'reply'; target: string };
@@ -21,7 +21,7 @@ export function text(text: string): TextMessage {
 }
 
 export function image(content: string | Buffer, name?: string): ImageMessage {
-  return { type: 'image', content, name: name || '*filtered*' };
+  return { type: 'image', content, name: name };
 }
 
 export function findFirstText(message: Message) {

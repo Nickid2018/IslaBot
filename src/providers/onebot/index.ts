@@ -16,6 +16,7 @@ import { Config } from '../../core/config';
 import { injectable, singleton } from 'tsyringe';
 import { NCWebsocket, SendMessageSegment, Structs } from 'node-napcat-ts';
 import { Logger } from '../../core/logger';
+import { Fetcher } from '../../core/fetcher';
 
 @injectable({ token: PROVIDER_TOKEN })
 @singleton()
@@ -30,6 +31,7 @@ export class ProviderOnebot implements IProvider {
   constructor(
     private readonly cfg: Config,
     private readonly logger: Logger,
+    private readonly fetcher: Fetcher,
   ) {}
 
   init(): void {
@@ -61,16 +63,25 @@ export class ProviderOnebot implements IProvider {
     return this.connected ?? Promise.reject<void>();
   }
 
-  private construct(message: Message) {
+  private async construct(message: Message) {
     const structs: SendMessageSegment[] = [];
-    const _construct = (message: Message) => {
-      if (Array.isArray(message)) return message.forEach(_construct);
+    const _construct = async (message: Message) => {
+      if (Array.isArray(message))
+        return void (await Promise.all(message.map(_construct)));
       switch (message.type) {
         case 'at':
           structs.push(Structs.at(message.target));
           break;
         case 'image':
-          structs.push(Structs.image(message.content, message.name));
+          if (
+            this.cfg.get('onebot.send.image_process') &&
+            typeof message.content === 'string'
+          ) {
+            const blob = await this.fetcher.fetchBlob(message.content);
+            if (blob) structs.push(Structs.image(blob, message.name));
+          } else {
+            structs.push(Structs.image(message.content, message.name));
+          }
           break;
         case 'text':
           structs.push(Structs.text(message.content));
@@ -80,7 +91,7 @@ export class ProviderOnebot implements IProvider {
           break;
       }
     };
-    _construct(message);
+    await _construct(message);
     return structs;
   }
 
@@ -116,7 +127,7 @@ export class ProviderOnebot implements IProvider {
       return await this.sendForward(target, [message]);
 
     if (!(await this.sendWait())) return;
-    const structs = this.construct(message);
+    const structs = await this.construct(message);
     const sendPayload = isUser(target)
       ? { user_id: Number(getId(target)), message: structs }
       : { group_id: Number(getId(target)), message: structs };
@@ -125,15 +136,17 @@ export class ProviderOnebot implements IProvider {
 
   async sendForward(target: Target, message: ForwardPackedMessage) {
     if (!(await this.sendWait())) return;
-    const nodes = message
-      .map(this.construct)
-      .map((segment) =>
-        Structs.customNode(
-          segment,
-          this.cfg.getInt('onebot.self.id', 1145141919),
-          this.cfg.get('onebot.self.nickname', 'Forward Message')!,
+    const nodes = await Promise.all(
+      message
+        .map(this.construct)
+        .map(async (segment) =>
+          Structs.customNode(
+            await segment,
+            this.cfg.getInt('onebot.self.id', 1145141919),
+            this.cfg.get('onebot.self.nickname', 'Forward Message')!,
+          ),
         ),
-      );
+    );
     const sendPayload = isUser(target)
       ? { user_id: Number(getId(target)), message: nodes }
       : { group_id: Number(getId(target)), message: nodes };

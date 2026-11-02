@@ -18,8 +18,6 @@ import { PermissionLevel } from '../../../generated/prisma/enums';
 import { Permission } from '../../core/permission';
 import { shouldRenderPage } from './wiki';
 
-export const ISLA_BOT_UA = 'IslaBot Wiki Plugin/1.0';
-
 @injectable({ token: COMMAND_PROVIDER_TOKEN })
 export class WikiCommands implements ICommandProvider {
   constructor(

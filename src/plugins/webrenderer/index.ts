@@ -21,10 +21,12 @@ export class WebRenderer implements Disposable {
   ) {
     const browser = await this.browser;
     const page = await browser.newPage();
+    this.logger.info('prepare to render web page')
     await page.setContent(html, { waitUntil: 'domcontentloaded', signal });
     await page.setViewport(viewport);
     await scrollPageToBottom(page, { size: 250, delay: 100 });
     await page.waitForNetworkIdle({ signal, concurrency: 2 });
+    this.logger.info('network idle, execute script and do wait selector');
     if (script) await page.waitForFunction(script, { signal });
     if (selector) {
       const element = await page.waitForSelector(selector, { signal });

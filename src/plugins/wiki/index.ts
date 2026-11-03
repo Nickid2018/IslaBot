@@ -237,10 +237,12 @@ export class WikiCommands implements ICommandProvider {
     if (pageInfo.url) content += '\n' + pageInfo.url.toString();
     await provider.send(scope, text(content));
 
-    const featureFlag = `wiki.render.[${wiki.apiURL}]`;
+    const featureFlag = `wiki.render.[${wiki.apiURL.trim()}]`;
     const pScope = `${provider.id()}:${scope}`;
     if (!(await this.features.featureEnabled(pScope, featureFlag)))
       return COMMAND_CAUGHT;
+    this.logger.info(`wiki render enabled for ${pageInfo.url}`);
+
     if (pageInfo.files) {
       const img = pageInfo.files.filter((i) => i.mime.startsWith('image'));
       if (img.length === 0) return COMMAND_CAUGHT;
@@ -255,6 +257,7 @@ export class WikiCommands implements ICommandProvider {
 
     if ((!shouldRenderPage(pageInfo) && !query.endsWith('#')) || !pageInfo.url)
       return COMMAND_CAUGHT;
+    this.logger.info(`wiki page render enabled for ${pageInfo.url}`);
 
     const finalName = pageInfo.normalized_to || pageInfo.redirect_to || query;
     const finalSection = pageInfo.redirect_frag || section;
@@ -272,6 +275,7 @@ export class WikiCommands implements ICommandProvider {
     else buffer = await this.renderer.shotInfobox(pageInfo.url.toString());
 
     if (buffer) await provider.send(scope, image(buffer));
+    else this.logger.info(`${pageInfo.url} have nothing to capture`);
 
     return COMMAND_CAUGHT;
   }

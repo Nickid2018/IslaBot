@@ -51,9 +51,26 @@ export class WikiRenderer {
 
   cleanDocument(jsdom: JSDOM, element: HTMLElement, urlStr: string) {
     const { HTMLElement, document } = jsdom.window;
+    const templates = document.querySelectorAll('template');
+    const templateHosts = new WeakMap<DocumentFragment, HTMLTemplateElement>();
+    [...templates].forEach((template) => {
+      const fragment = template.content;
+      templateHosts.set(fragment, template);
+    });
+
     while (element !== document.body) {
-      if (!element.parentElement) break;
-      const collection = element.parentElement.children;
+      if (!element.parentElement) {
+        // template
+        const root = templateHosts.get(
+          element.getRootNode() as DocumentFragment,
+        );
+        if (!root) break;
+        root.parentElement!.appendChild(element);
+        element = root.parentElement!;
+        root.remove();
+        if (element === document.body) break;
+      }
+      const collection = element.parentElement!.children;
       if (collection)
         [...collection]
           .filter(
@@ -61,16 +78,7 @@ export class WikiRenderer {
               i !== element && i.tagName !== 'STYLE' && i.tagName !== 'SCRIPT',
           )
           .forEach((i) => i.remove());
-      element = element.parentElement;
-      if (element.tagName === 'TEMPLATE') {
-        const child = [...element.children].find(
-          (v) => v instanceof HTMLElement,
-        );
-        if (!child) continue;
-        element.parentElement?.appendChild(child);
-        element.remove();
-        element = child;
-      }
+      element = element.parentElement!;
     }
 
     const elements = [element];
@@ -126,17 +134,31 @@ export class WikiRenderer {
     return buffer;
   }
 
+  traverseQuerySelector(
+    selector: string,
+    root: Document | DocumentFragment,
+  ): Element[] {
+    const templates = [...root.querySelectorAll('template')];
+    const found = templates
+      .map((t) => this.traverseQuerySelector(selector, t.content))
+      .flat();
+    return [...found, ...root.querySelectorAll(selector)];
+  }
+
   async shot(content: string, id: string, urlStr: string) {
     const document = new JSDOM(content);
-    const element = document.window.document.getElementById(id);
+    const element = this.traverseQuerySelector(
+      `#${id}`,
+      document.window.document,
+    ).at(0);
     if (!element) {
       this.logger.warn(`no valid #${id} for '${urlStr}'`);
       return null;
     }
-    this.cleanDocument(document, element, urlStr);
+    this.cleanDocument(document, element as HTMLElement, urlStr);
     return await this.webRenderer.render(
       document.window.document.documentElement.outerHTML,
-      AbortSignal.timeout(this.cfg.getInt('wiki.render.timeout', 30000)),
+      AbortSignal.timeout(this.cfg.getInt('wiki.render.timeout', 60000)),
       `#${id}`,
       {
         width: this.cfg.getInt('wiki.render.width', 1920),
@@ -149,10 +171,10 @@ export class WikiRenderer {
   async shotClassList(content: string, classes: string[], urlStr: string) {
     const document = new JSDOM(content);
     const element = classes
-      .map((c) => document.window.document.getElementsByClassName(c))
+      .map((c) => this.traverseQuerySelector(`.${c}`, document.window.document))
       .filter((l) => l.length > 0)
       .at(0)
-      ?.item(0);
+      ?.at(0);
     if (!element) {
       this.logger.warn(`no valid .{${classes.join()}} for '${urlStr}'`);
       return null;
@@ -161,7 +183,7 @@ export class WikiRenderer {
     this.cleanDocument(document, element as HTMLElement, urlStr);
     return await this.webRenderer.render(
       document.window.document.documentElement.outerHTML,
-      AbortSignal.timeout(this.cfg.getInt('wiki.render.timeout', 30000)),
+      AbortSignal.timeout(this.cfg.getInt('wiki.render.timeout', 60000)),
       `#${element.id}`,
       {
         width: this.cfg.getInt('wiki.render.width', 1920),

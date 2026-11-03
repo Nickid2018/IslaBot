@@ -25,7 +25,7 @@ export class WebRenderer implements Disposable {
     await page.setContent(html, { waitUntil: 'domcontentloaded', signal });
     await page.setViewport(viewport);
     await scrollPageToBottom(page, { size: 250, delay: 100 });
-    await page.waitForNetworkIdle({ signal, concurrency: 2 });
+    await page.waitForNetworkIdle({ signal });
     this.logger.info('network idle, execute script and do wait selector');
     if (script) await page.waitForFunction(script, { signal });
     if (selector) {
@@ -35,8 +35,10 @@ export class WebRenderer implements Disposable {
         return null;
       }
       await element.scrollIntoView();
+      await page.waitForNetworkIdle({ signal });
       return await element.screenshot({ captureBeyondViewport: true });
     } else {
+      await page.waitForNetworkIdle({ signal });
       return await page.screenshot({ fullPage: true });
     }
   }

@@ -138,6 +138,11 @@ export class WikiRenderer {
       document.window.document.documentElement.outerHTML,
       AbortSignal.timeout(this.cfg.getInt('wiki.render.timeout', 30000)),
       `#${id}`,
+      {
+        width: this.cfg.getInt('wiki.render.width', 1920),
+        height: this.cfg.getInt('wiki.render.height', 1080),
+        deviceScaleFactor: this.cfg.getInt('wiki.render.scale', 2),
+      },
     );
   }
 
@@ -158,6 +163,11 @@ export class WikiRenderer {
       document.window.document.documentElement.outerHTML,
       AbortSignal.timeout(this.cfg.getInt('wiki.render.timeout', 30000)),
       `#${element.id}`,
+      {
+        width: this.cfg.getInt('wiki.render.width', 1920),
+        height: this.cfg.getInt('wiki.render.height', 1080),
+        deviceScaleFactor: this.cfg.getInt('wiki.render.scale', 2),
+      },
     );
   }
 

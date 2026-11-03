@@ -45,7 +45,7 @@ class DefaultMemoryCache implements ICache {
   async set(key: string, value: any, ttl?: number) {
     this.cacheMap.set(key, {
       value,
-      timeExpired: ttl ? Date.now() + ttl : Number.MAX_SAFE_INTEGER,
+      timeExpired: ttl ? Date.now() + ttl * 1000 : Number.MAX_SAFE_INTEGER,
     });
   }
 

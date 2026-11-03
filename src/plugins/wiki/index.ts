@@ -234,6 +234,12 @@ export class WikiCommands implements ICommandProvider {
         content += `\n${i + 1}: ${section}`;
       });
     }
+    if (pageInfo.similarTitles && pageInfo.similarTitles.length > 0) {
+      content += '\n相似页面为：';
+      pageInfo.similarTitles.forEach((page, i) => {
+        content += `\n${i + 1}: ${page}`;
+      });
+    }
     if (pageInfo.url) content += '\n' + pageInfo.url.toString();
     await provider.send(scope, text(content));
 
@@ -241,7 +247,6 @@ export class WikiCommands implements ICommandProvider {
     const pScope = `${provider.id()}:${scope}`;
     if (!(await this.features.featureEnabled(pScope, featureFlag)))
       return COMMAND_CAUGHT;
-    this.logger.info(`wiki render enabled for ${pageInfo.url}`);
 
     if (pageInfo.files) {
       const img = pageInfo.files.filter((i) => i.mime.startsWith('image'));

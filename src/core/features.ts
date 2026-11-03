@@ -52,7 +52,6 @@ export class Features {
     const featureEntry = await this.db.prisma.featureEnables.findUnique({
       where: { scope_feature: { scope, feature } },
     });
-    this.logger.info(`feature query ${scope}:${feature}: ${featureEntry}`);
     if (!featureEntry) {
       await this.cache.set(cacheKey, 'null');
       return defaultValue;
@@ -93,7 +92,7 @@ export class Features {
   }
 
   async enableFeature(scope: string, feature: string) {
-    if (!this.groupEnabled(scope)) return false;
+    if (!await this.groupEnabled(scope)) return false;
     const cacheKey = `feature:${scope}:${feature}`;
     await this.db.prisma.featureEnables.upsert({
       where: { scope_feature: { scope, feature } },

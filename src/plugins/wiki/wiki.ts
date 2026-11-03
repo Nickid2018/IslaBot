@@ -19,6 +19,9 @@ export const PAGE_PARSE_SECTIONS = encodeURI(
 export const TEXT_EXTRACTS = encodeURI(
   '?action=query&format=json&prop=extracts&exchars=200&exsectionformat=plain&explaintext=1&exintro=1&titles=',
 );
+export const SEARCH = encodeURI(
+  '?action=query&format=json&list=search&srenablerewrites=true&srprop=&srwhat=text&',
+);
 
 export type PageInfo = {
   type: string;
@@ -31,6 +34,7 @@ export type PageInfo = {
   files?: { url: string; mime: string }[];
   sections?: string[];
   sectionId?: string;
+  similarTitles?: string[];
 };
 
 export class WikiInstance {
@@ -123,11 +127,15 @@ export class WikiInstance {
     }
 
     const entries = Object.entries(pageData?.query?.pages || {});
-    if (entries.length === 0)
-      return { type: 'page_not_found', content: '没有找到对应标题的页面' };
-    const pageInfo = entries[0][1] as any;
-    if ('missing' in pageInfo)
-      return { type: 'page_not_found', content: '没有找到对应标题的页面' };
+    const pageInfo = entries[0]?.[1] as any;
+    if (!pageInfo || 'missing' in pageInfo) {
+      const titles = await this.searchTitle([namespace], title, 5);
+      return {
+        type: 'page_not_found',
+        content: '没有找到对应标题的页面',
+        similarTitles: titles,
+      };
+    }
     if ('special' in pageInfo)
       return {
         type: 'special_page',
@@ -299,6 +307,29 @@ export class WikiInstance {
       url: await this.resolveScript(pageId, section),
       sectionId,
     };
+  }
+
+  async searchTitle(
+    namespaces: string[],
+    title: string,
+    limit: number,
+  ): Promise<string[]> {
+    const ns = namespaces
+      .map((val) => (val ? this.namespaces.get(val) : 0))
+      .filter(v => typeof v === 'number')
+      .join('|');
+    const query = encodeURI(
+      this.apiURL +
+        SEARCH +
+        'srnamespace=' +
+        (ns || '*') +
+        '&srsearch=' +
+        title +
+        '&srlimit=' +
+        limit,
+    );
+    const data = await this.retryFetch(query);
+    return data?.query?.search?.map((l: any) => l.title) ?? [];
   }
 }
 

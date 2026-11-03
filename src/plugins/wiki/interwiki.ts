@@ -24,7 +24,7 @@ export class InterwikiStorage {
     private readonly fetcher: Fetcher,
   ) {
     this.fetchJson = retries(fetcher.fetchJson, 3);
-    this.fetchText = retries(fetcher.fetchText, 3);
+    this.fetchText = retries(fetcher.fetchTextNoExcept, 3);
   }
 
   async findInterwikis(api: string) {

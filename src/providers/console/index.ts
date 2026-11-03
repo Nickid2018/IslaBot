@@ -26,6 +26,9 @@ import { Writable } from 'node:stream';
 export class ProviderConsole implements IProvider, Disposable {
   private callback?: (msgId: string, message: string) => void;
   private lastMsgId = 0;
+  private readonly commandHistory: string[] = [];
+  private prepareBuffer: string = '';
+  private commandCursor: number = 0;
 
   constructor(private readonly logger: Logger) {}
 
@@ -87,12 +90,31 @@ export class ProviderConsole implements IProvider, Disposable {
       input.value = '';
       this.logger.info(`Console: ${val}`);
       this.callback?.(`${this.lastMsgId++}`, val);
+      this.commandHistory.push(val);
+      if (this.commandHistory.length > 100) this.commandHistory.shift();
+      this.commandCursor = this.commandHistory.length;
+      this.prepareBuffer = '';
     });
     inputRow.add(input);
     rootColumn.add(inputRow);
 
     const onKeyPress = (key: KeyEvent) => {
       if (key.ctrl && key.name === 'c') STOP_CONTROLLER.abort();
+      if (key.name === 'up') {
+        if (this.commandCursor === this.commandHistory.length)
+          this.prepareBuffer = input.value;
+        this.commandCursor = Math.max(0, this.commandCursor - 1);
+        input.value = this.commandHistory[this.commandCursor];
+      }
+      if (key.name === 'down') {
+        this.commandCursor = Math.min(
+          this.commandHistory.length,
+          this.commandCursor + 1,
+        );
+        if (this.commandCursor === this.commandHistory.length)
+          input.value = this.prepareBuffer;
+        else input.value = this.commandHistory[this.commandCursor];
+      }
     };
     renderer.keyInput.on('keypress', onKeyPress);
 

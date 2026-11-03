@@ -73,6 +73,16 @@ export class Fetcher {
     }
   };
 
+  fetchTextNoExcept = async (url: URL | string | Request, init?: RequestInit) => {
+    try {
+      const resp = await this.fetch(url, init);
+      return await resp.text();
+    } catch (e) {
+      this.logger.warn(e, `failed to fetch ${url}`);
+      return null;
+    }
+  };
+
   fetchBlob = async (url: URL | string) => {
     try {
       const resp = await this.fetch(url);

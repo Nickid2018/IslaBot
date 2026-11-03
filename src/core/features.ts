@@ -1,6 +1,7 @@
 import { inject, injectable } from 'tsyringe';
 import { Database } from './database';
 import { CACHE_TOKEN, ICache } from './cache';
+import { Logger } from 'pino';
 
 let initialized = false;
 
@@ -9,9 +10,10 @@ export class Features {
   constructor(
     private readonly db: Database,
     @inject(CACHE_TOKEN) private readonly cache: ICache,
+    private readonly logger: Logger,
   ) {
     if (!initialized) {
-      this.enableGroup('console:user:0');
+      this.enableGroup('console:user:0').catch(this.logger.error);
       initialized = true;
     }
   }
@@ -50,11 +52,12 @@ export class Features {
     const featureEntry = await this.db.prisma.featureEnables.findUnique({
       where: { scope_feature: { scope, feature } },
     });
+    this.logger.info(`feature query ${scope}:${feature}: ${featureEntry}`);
     if (!featureEntry) {
       await this.cache.set(cacheKey, 'null');
       return defaultValue;
     } else {
-      await this.cache.set(cacheKey, Boolean(featureEntry.enabled));
+      await this.cache.set(cacheKey, String(featureEntry.enabled));
       return featureEntry.enabled;
     }
   }

@@ -1,7 +1,7 @@
 import { inject, injectable } from 'tsyringe';
 import { Database } from './database';
 import { CACHE_TOKEN, ICache } from './cache';
-import { Logger } from 'pino';
+import { Logger } from './logger';
 
 let initialized = false;
 

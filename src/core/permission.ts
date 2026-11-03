@@ -20,7 +20,9 @@ export class Permission {
     @inject(CACHE_TOKEN) private readonly cache: ICache,
   ) {
     if (!initialized) {
-      this.setPermission('console:user:0', PermissionLevel.SYSOP);
+      this.setPermission('console:user:0', PermissionLevel.SYSOP).catch(
+        () => {},
+      );
       initialized = true;
     }
   }
@@ -39,7 +41,9 @@ export class Permission {
   }
 
   async hasPermission(target: string, level: PermissionLevel) {
-    return LEVELS_INDEX[await this.getPermission(target)] >= LEVELS_INDEX[level];
+    return (
+      LEVELS_INDEX[await this.getPermission(target)] >= LEVELS_INDEX[level]
+    );
   }
 
   async setPermission(target: string, permission: PermissionLevel) {

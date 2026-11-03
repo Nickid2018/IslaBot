@@ -8,8 +8,10 @@ import { Features } from './core/features';
 
 export const STOP_CONTROLLER = new AbortController();
 
+const logger = container.resolve(Logger);
+
 const manuallyStop = () => {
-  console.log('\nreceived manually stop');
+  logger.warn('received manually stop');
   STOP_CONTROLLER.abort();
 };
 process.on('SIGINT', manuallyStop);
@@ -20,18 +22,17 @@ process.stdin.resume();
   await import('./plugins');
   await import('./providers');
 
-  const logger = container.resolve(Logger);
   const features = container.resolve(Features);
   const providers = container.resolveAll<IProvider>(PROVIDER_TOKEN);
   providers.forEach((p) => p.init());
   providers.map((p) => new CommandResolver(p, features, logger));
 
   await new Promise((r) => STOP_CONTROLLER.signal.addEventListener('abort', r));
-  console.log('IslaCore is closing');
+  logger.info('IslaCore is closing');
 
   const timeout = new Promise((r) => setTimeout(() => r(true), 5000));
   const result = await Promise.any([container.dispose(), timeout]);
-  if (result) console.warn("bot core doesn't stop in time, force stopped.");
+  if (result) logger.warn("bot core doesn't stop in time, force stopped.");
 
   process.exit(0);
 })();

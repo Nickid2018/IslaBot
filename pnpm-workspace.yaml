@@ -2,6 +2,7 @@ allowBuilds:
   '@prisma/engines': true
   better-sqlite3: true
   esbuild: true
+  node-pipe: true
   prisma: true
   puppeteer: true
   workerd: true

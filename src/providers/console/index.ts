@@ -1,4 +1,4 @@
-import { injectable, singleton } from 'tsyringe';
+import { Disposable, injectable, singleton } from 'tsyringe';
 import {
   ForwardPackedMessage,
   IProvider,
@@ -6,18 +6,111 @@ import {
   PROVIDER_TOKEN,
   Target,
 } from '../definitions';
+import {
+  BoxRenderable,
+  CliRenderer,
+  createCliRenderer,
+  EmbeddedTerminalRenderable,
+  InputRenderable,
+  InputRenderableEvents,
+  KeyEvent,
+  TextRenderable,
+} from '@opentui/core';
+import { Logger } from '../../core/logger';
 import * as readline from 'node:readline/promises';
-import { stdin as input, stdout as output } from 'node:process';
 import { STOP_CONTROLLER } from '../../main';
+import { Writable } from 'node:stream';
 
 @injectable({ token: PROVIDER_TOKEN })
 @singleton()
-export class ProviderConsole implements IProvider {
+export class ProviderConsole implements IProvider, Disposable {
   private callback?: (msgId: string, message: string) => void;
   private lastMsgId = 0;
 
-  constructor() {
-    const rl = readline.createInterface({ input, output, terminal: false });
+  constructor(private readonly logger: Logger) {}
+
+  init(): void {
+    (async () => {
+      const renderer = await createCliRenderer({
+        exitOnCtrlC: false,
+        targetFps: 30,
+      });
+      this.initTUI(renderer);
+    })().catch((e) => {
+      this.logger.error(e, 'cannot initialize TUI');
+      this.initInput();
+    });
+  }
+
+  initTUI(renderer: CliRenderer) {
+    const rootColumn = new BoxRenderable(renderer, {
+      height: '100%',
+      width: '100%',
+      flexDirection: 'column',
+      gap: 1,
+    });
+
+    const terminal = new EmbeddedTerminalRenderable(renderer, {
+      id: 'log',
+      width: '100%',
+      flexGrow: 1,
+      flexBasis: 0,
+      maxScrollback: 655360,
+      transparentBackground: true,
+    });
+    this.logger.setReadPipe(
+      new Writable({
+        write: (chunk, _, callback) => {
+          if (!STOP_CONTROLLER.signal.aborted) terminal.write(chunk);
+          callback();
+        },
+      }),
+    );
+    terminal.focusable = false;
+    rootColumn.add(terminal);
+
+    const inputRow = new BoxRenderable(renderer, {
+      height: 1,
+      width: '100%',
+      flexDirection: 'row',
+      gap: 1,
+      bottom: 0,
+    });
+    inputRow.add(new TextRenderable(renderer, { content: '>' }));
+    const input = new InputRenderable(renderer, {
+      flexGrow: 1,
+      flexBasis: 0,
+      id: 'command-input',
+      placeholder: 'Command Here...',
+    });
+    input.on(InputRenderableEvents.ENTER, (val: string) => {
+      input.value = '';
+      this.logger.info(`Console: ${val}`);
+      this.callback?.(`${this.lastMsgId++}`, val);
+    });
+    inputRow.add(input);
+    rootColumn.add(inputRow);
+
+    const onKeyPress = (key: KeyEvent) => {
+      if (key.ctrl && key.name === 'c') STOP_CONTROLLER.abort();
+    };
+    renderer.keyInput.on('keypress', onKeyPress);
+
+    STOP_CONTROLLER.signal.addEventListener('abort', () => {
+      rootColumn.remove(terminal); // avoid exceptions
+      terminal.destroy();
+    });
+    renderer.root.add(rootColumn);
+    input.focus();
+    renderer.start();
+  }
+
+  initInput() {
+    this.logger.setReadPipe(process.stdout);
+    const rl = readline.createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
     (async () => {
       while (!STOP_CONTROLLER.signal.aborted) {
         const line = await rl.question('');
@@ -25,8 +118,6 @@ export class ProviderConsole implements IProvider {
       }
     })();
   }
-
-  init(): void {}
 
   listen(
     callback: (
@@ -45,13 +136,21 @@ export class ProviderConsole implements IProvider {
     return Promise.resolve();
   }
 
+  filterBuffers(message: Message) {
+    if (Array.isArray(message)) return message.forEach(this.filterBuffers);
+    if (message.type === 'image' && typeof message.content !== 'string')
+      message.content = '[Binary Data]';
+  }
+
   async send(_: Target, message: Message) {
-    console.log(message);
+    this.filterBuffers(message);
+    this.logger.info(message, 'Console Response');
     return undefined;
   }
 
   async sendForward(_: Target, message: ForwardPackedMessage) {
-    console.log(message);
+    message.forEach(this.filterBuffers);
+    this.logger.info(message, 'Console Response');
     return undefined;
   }
 
@@ -61,5 +160,9 @@ export class ProviderConsole implements IProvider {
 
   id(): string {
     return 'console';
+  }
+
+  dispose(): Promise<void> | void {
+    return undefined;
   }
 }

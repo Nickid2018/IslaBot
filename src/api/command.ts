@@ -128,3 +128,28 @@ export function permission(permission: PermissionLevel): MethodDecorator {
     return descriptor;
   };
 }
+
+export function replied(metadata: boolean = true): MethodDecorator {
+  return function (
+    _target: any,
+    _propertyKey: string | symbol,
+    descriptor: PropertyDescriptor,
+  ) {
+    const originalMethod = descriptor.value;
+    descriptor.value = async function (...args: any[]) {
+      const provider = args[0] as IProvider;
+      const message = args[4] as Message;
+      const reply = Array.isArray(message)
+        ? message.find((m) => m.type === 'reply')
+        : undefined;
+      if (!reply) return COMMAND_SKIPPED;
+      const sent = await provider.getSentMessages();
+      if (!sent.includes(reply.target)) return COMMAND_SKIPPED;
+      args.push(reply.target);
+      if (metadata)
+        args.push(await provider.getSentMessageMetadata(reply.target));
+      return await originalMethod.apply(this, args);
+    };
+    return descriptor;
+  };
+}

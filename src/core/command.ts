@@ -23,7 +23,8 @@ export class CommandResolver {
     msgId: string,
     message: Message,
   ) => {
-    if (!this.features.groupEnabled(scope)) return;
+    const pScope = `${this.provider.id()}:${scope}`;
+    if (!(await this.features.groupEnabled(pScope))) return;
     const commandProviders = container.resolveAll<ICommandProvider>(
       COMMAND_PROVIDER_TOKEN,
     );

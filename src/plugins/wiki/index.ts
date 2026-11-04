@@ -8,6 +8,7 @@ import {
   ICommandProvider,
   permission,
   regex,
+  replied,
 } from '../../api/command';
 import { Features } from '../../core/features';
 import { Logger } from '../../core/logger';
@@ -16,7 +17,7 @@ import { Database } from '../../core/database';
 import { image, IProvider, Message, Target, text } from '../../providers';
 import { PermissionLevel } from '../../../generated/prisma/enums';
 import { Permission } from '../../core/permission';
-import { shouldRenderPage } from './wiki';
+import { PageInfo, shouldRenderPage, WikiInstance } from './wiki';
 import { WikiRenderer } from './renderer';
 
 @injectable({ token: COMMAND_PROVIDER_TOKEN })
@@ -35,14 +36,14 @@ export class WikiCommands implements ICommandProvider {
   @permission(PermissionLevel.NORMAL)
   async doWikiInline(
     provider: IProvider,
-    _: Target,
+    target: Target,
     scope: Target,
     __: string,
     ___: Message,
     match?: RegExpMatchArray,
   ): Promise<CommandResult> {
     if (!match) return COMMAND_SKIPPED;
-    return await this.doWiki(provider, scope, match[1]);
+    return await this.doWiki(provider, target, scope, match[1]);
   }
 
   @regex(/^~wiki (.+)$/)
@@ -50,14 +51,14 @@ export class WikiCommands implements ICommandProvider {
   @permission(PermissionLevel.NORMAL)
   async doWikiGlobal(
     provider: IProvider,
-    _: Target,
+    target: Target,
     scope: Target,
     __: string,
     ___: Message,
     match?: RegExpMatchArray,
   ): Promise<CommandResult> {
     if (!match) return COMMAND_SKIPPED;
-    return await this.doWiki(provider, scope, match[1]);
+    return await this.doWiki(provider, target, scope, match[1]);
   }
 
   @regex(/^~wikiadd ([^ ]+) (.+)$/)
@@ -133,6 +134,7 @@ export class WikiCommands implements ICommandProvider {
 
   async doWiki(
     provider: IProvider,
+    target: Target,
     scope: Target,
     query: string,
   ): Promise<CommandResult> {
@@ -208,8 +210,30 @@ export class WikiCommands implements ICommandProvider {
 
     const wiki = this.storage.getWikiInstance(nowWiki);
     const pageInfo = await wiki.getPageInfo(query, section);
+    await this.doWikiResult(
+      provider,
+      target,
+      scope,
+      query,
+      section,
+      pageInfo,
+      wiki,
+    );
+    return COMMAND_CAUGHT;
+  }
+
+  async doWikiResult(
+    provider: IProvider,
+    target: Target,
+    scope: Target,
+    query: string,
+    section: string,
+    pageInfo: PageInfo,
+    wiki: WikiInstance,
+  ) {
     this.logger.debug(pageInfo);
 
+    const savedMetadata: any = {};
     let content = pageInfo.content;
     if (pageInfo.type === 'disambiguation') {
       content = `消歧义页面`;
@@ -239,9 +263,15 @@ export class WikiCommands implements ICommandProvider {
       pageInfo.similarTitles.forEach((page, i) => {
         content += `\n${i + 1}: ${page}`;
       });
+      content += `\n5分钟内回复此消息中的序号可查询对应页面`;
+      savedMetadata.type = 'wiki-search-result';
+      savedMetadata.wiki = wiki.apiURL;
+      savedMetadata.content = pageInfo.similarTitles;
+      savedMetadata.section = section;
+      savedMetadata.target = target;
     }
     if (pageInfo.url) content += '\n' + pageInfo.url.toString();
-    await provider.send(scope, text(content));
+    await provider.send(scope, text(content), savedMetadata);
 
     const featureFlag = `wiki.render.[${wiki.apiURL.trim()}]`;
     const pScope = `${provider.id()}:${scope}`;
@@ -281,7 +311,43 @@ export class WikiCommands implements ICommandProvider {
 
     if (buffer) await provider.send(scope, image(buffer));
     else this.logger.info(`${pageInfo.url} have nothing to capture`);
+  }
 
+  @replied()
+  async replyMessage(
+    provider: IProvider,
+    target: Target,
+    scope: Target,
+    __: string,
+    message: Message,
+    msgId?: string,
+    metadata?: any,
+  ) {
+    if (!msgId || !metadata || metadata.type !== 'wiki-search-result')
+      return COMMAND_SKIPPED;
+    if (metadata.target !== target) return COMMAND_SKIPPED;
+    const indexStr = Array.isArray(message)
+      ? message.find((m) => m.type === 'text')
+      : message.type === 'text'
+        ? message
+        : null;
+    if (!indexStr) return COMMAND_SKIPPED;
+    const index = parseInt(indexStr.content.trim());
+    if (isNaN(index) || index <= 0 || index > metadata.content.length)
+      return COMMAND_SKIPPED;
+    const wiki = this.storage.getWikiInstance(metadata.wiki);
+    const title = metadata.content[index - 1];
+    const section = metadata.section;
+    const page = await wiki.getPageInfo(title, section);
+    await this.doWikiResult(
+      provider,
+      target,
+      scope,
+      title,
+      section,
+      page,
+      wiki,
+    );
     return COMMAND_CAUGHT;
   }
 
@@ -292,6 +358,7 @@ export class WikiCommands implements ICommandProvider {
       this.addWiki,
       this.removeWiki,
       this.setStartWiki,
+      this.replyMessage,
     ].map((f) => f.bind(this));
   }
 }

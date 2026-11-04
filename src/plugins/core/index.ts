@@ -7,7 +7,7 @@ import {
   ICommandProvider,
   permission,
   prefix,
-  regex,
+  regex, replied,
 } from '../../api/command';
 import { LEVELS_INDEX, Permission } from '../../core/permission';
 import { PermissionLevel } from '../../../generated/prisma/enums';
@@ -174,20 +174,17 @@ export class CoreCommands implements ICommandProvider {
 
   @prefix('~recall')
   @permission(PermissionLevel.ADMIN)
+  @replied(false)
   async recall(
     provider: IProvider,
     _: Target,
     __: Target,
     ___: string,
-    message: Message,
+    ____: Message,
+    msgId?: string,
   ) {
-    const reply = Array.isArray(message)
-      ? message.find((m) => m.type === 'reply')
-      : undefined;
-    if (!reply) return COMMAND_SKIPPED;
-    const sent = await provider.getSentMessages();
-    if (!sent.includes(reply.target)) return COMMAND_SKIPPED;
-    await provider.recallMessage(reply.target);
+    if (!msgId) return COMMAND_SKIPPED;
+    await provider.recallMessage(msgId);
     return COMMAND_CAUGHT;
   }
 

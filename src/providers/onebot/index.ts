@@ -119,6 +119,12 @@ export class ProviderOnebot implements IProvider {
     return true;
   }
 
+  filterBuffers(message: Message) {
+    if (Array.isArray(message)) return message.forEach(this.filterBuffers);
+    if (message.type === 'image' && typeof message.content !== 'string')
+      message.content = '[Binary Data]';
+  }
+
   async send(target: Target, message: Message, savedMetadata: any = {}) {
     const _countTexts = (message: Message): number => {
       if (Array.isArray(message))
@@ -136,12 +142,14 @@ export class ProviderOnebot implements IProvider {
     const msgId = (
       await this.ws?.send_msg(sendPayload)
     )?.message_id?.toString();
-    if (msgId)
+    if (msgId) {
+      this.filterBuffers(message);
       this.logger.info(
         { message_id: msgId, ...message, ...savedMetadata },
         'sent single message',
       );
-    await this.cache.set(`provider.onebot.sent.${msgId}`, savedMetadata, 300);
+      await this.cache.set(`provider.onebot.sent.${msgId}`, savedMetadata, 300);
+    }
     return msgId;
   }
 
@@ -168,12 +176,14 @@ export class ProviderOnebot implements IProvider {
     const msgId = (
       await this.ws?.send_forward_msg(sendPayload)
     )?.message_id?.toString();
-    this.logger.info(
-      { message_id: msgId, ...message, ...savedMetadata },
-      'sent forward message',
-    );
-    if (msgId)
+    if (msgId) {
+      message.forEach(this.filterBuffers);
+      this.logger.info(
+        { message_id: msgId, content: message, ...savedMetadata },
+        'sent forward message',
+      );
       await this.cache.set(`provider.onebot.sent.${msgId}`, savedMetadata, 300);
+    }
     return msgId;
   }
 

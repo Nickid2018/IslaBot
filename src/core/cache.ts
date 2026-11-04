@@ -50,7 +50,9 @@ class DefaultMemoryCache implements ICache {
   }
 
   async listPrefix(key: string) {
-    return [...this.cacheMap.keys()].filter(k => k.startsWith(key));
+    return [...this.cacheMap.entries()]
+      .filter(([k, en]) => k.startsWith(key) && en.timeExpired > Date.now())
+      .map(([k]) => k);
   }
 
   dispose(): void {

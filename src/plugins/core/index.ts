@@ -172,6 +172,25 @@ export class CoreCommands implements ICommandProvider {
     return COMMAND_CAUGHT;
   }
 
+  @prefix('~recall')
+  @permission(PermissionLevel.ADMIN)
+  async recall(
+    provider: IProvider,
+    _: Target,
+    __: Target,
+    ___: string,
+    message: Message,
+  ) {
+    const reply = Array.isArray(message)
+      ? message.find((m) => m.type === 'reply')
+      : undefined;
+    if (!reply) return COMMAND_SKIPPED;
+    const sent = await provider.getSentMessages();
+    if (!sent.includes(reply.target)) return COMMAND_SKIPPED;
+    await provider.recallMessage(reply.target);
+    return COMMAND_CAUGHT;
+  }
+
   commands() {
     return [
       this.exit,
@@ -181,6 +200,7 @@ export class CoreCommands implements ICommandProvider {
       this.disableGroup,
       this.enableFeature,
       this.disableFeature,
+      this.recall,
     ].map((i) => i.bind(this));
   }
 }

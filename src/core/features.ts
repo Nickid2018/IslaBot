@@ -27,7 +27,7 @@ export class Features {
       where: { id: scope },
     });
     if (entry) {
-      await this.cache.set(cacheKey, Boolean(entry.enabled));
+      await this.cache.set(cacheKey, String(entry.enabled));
       return entry.enabled;
     } else {
       await this.cache.set(cacheKey, 'false');

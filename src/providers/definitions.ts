@@ -58,10 +58,16 @@ export interface IProvider {
   id(): string;
   init(): void;
   ready(): Promise<void>;
-  send(target: Target, message: Message): Promise<string | undefined>;
+
+  send(
+    target: Target,
+    message: Message,
+    savedMetadata?: any,
+  ): Promise<string | undefined>;
   sendForward(
     target: Target,
     message: ForwardPackedMessage,
+    savedMetadata?: any,
   ): Promise<string | undefined>;
   listen(
     callback: (
@@ -71,5 +77,10 @@ export interface IProvider {
       message: Message,
     ) => void,
   ): void;
+
+  getSentMessages(): Promise<string[]>;
+  getSentMessageMetadata(msgId: string): Promise<any>;
+  recallMessage(msgId: string): Promise<void>;
+
   getCapability(capability: string): boolean;
 }

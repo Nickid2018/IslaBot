@@ -1,11 +1,5 @@
-import { Disposable, injectable, singleton } from 'tsyringe';
-import {
-  ForwardPackedMessage,
-  IProvider,
-  Message,
-  PROVIDER_TOKEN,
-  Target,
-} from '../definitions';
+import { inject, injectable, singleton } from 'tsyringe';
+import { ForwardPackedMessage, IProvider, Message, PROVIDER_TOKEN, Target } from '../definitions';
 import {
   BoxRenderable,
   CliRenderer,
@@ -14,7 +8,7 @@ import {
   InputRenderable,
   InputRenderableEvents,
   KeyEvent,
-  TextRenderable,
+  TextRenderable
 } from '@opentui/core';
 import { Logger } from '../../core/logger';
 import * as readline from 'node:readline/promises';
@@ -23,7 +17,7 @@ import { Writable } from 'node:stream';
 
 @injectable({ token: PROVIDER_TOKEN })
 @singleton()
-export class ProviderConsole implements IProvider, Disposable {
+export class ProviderConsole implements IProvider {
   private callback?: (msgId: string, message: string) => void;
   private lastMsgId = 0;
   private readonly commandHistory: string[] = [];
@@ -87,6 +81,7 @@ export class ProviderConsole implements IProvider, Disposable {
       placeholder: 'Command Here...',
     });
     input.on(InputRenderableEvents.ENTER, (val: string) => {
+      if (!val) return;
       input.value = '';
       this.logger.info(`Console: ${val}`);
       this.callback?.(`${this.lastMsgId++}`, val);
@@ -176,15 +171,22 @@ export class ProviderConsole implements IProvider, Disposable {
     return undefined;
   }
 
+  async getSentMessages() {
+    return [];
+  }
+
+  async getSentMessageMetadata(_: string) {
+    return {};
+  }
+
+  async recallMessage(_: string) {
+  }
+
   getCapability(capability: string): boolean {
     return false;
   }
 
   id(): string {
     return 'console';
-  }
-
-  dispose(): Promise<void> | void {
-    return undefined;
   }
 }

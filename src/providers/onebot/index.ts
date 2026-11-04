@@ -13,10 +13,11 @@ import {
   TextMessage,
 } from '..';
 import { Config } from '../../core/config';
-import { injectable, singleton } from 'tsyringe';
+import { inject, injectable, singleton } from 'tsyringe';
 import { NCWebsocket, SendMessageSegment, Structs } from 'node-napcat-ts';
 import { Logger } from '../../core/logger';
 import { Fetcher } from '../../core/fetcher';
+import { CACHE_TOKEN, ICache } from '../../core/cache';
 
 @injectable({ token: PROVIDER_TOKEN })
 @singleton()
@@ -32,6 +33,7 @@ export class ProviderOnebot implements IProvider {
     private readonly cfg: Config,
     private readonly logger: Logger,
     private readonly fetcher: Fetcher,
+    @inject(CACHE_TOKEN) private readonly cache: ICache,
   ) {}
 
   init(): void {
@@ -117,7 +119,7 @@ export class ProviderOnebot implements IProvider {
     return true;
   }
 
-  async send(target: Target, message: Message) {
+  async send(target: Target, message: Message, savedMetadata: any = {}) {
     const _countTexts = (message: Message): number => {
       if (Array.isArray(message))
         return message.map(_countTexts).reduce((a, b) => a + b, 0);
@@ -131,11 +133,23 @@ export class ProviderOnebot implements IProvider {
     const sendPayload = isUser(target)
       ? { user_id: Number(getId(target)), message: structs }
       : { group_id: Number(getId(target)), message: structs };
-    this.logger.info('sending single message');
-    return (await this.ws?.send_msg(sendPayload))?.message_id?.toString();
+    const msgId = (
+      await this.ws?.send_msg(sendPayload)
+    )?.message_id?.toString();
+    if (msgId)
+      this.logger.info(
+        { message_id: msgId, ...message, ...savedMetadata },
+        'sent single message',
+      );
+    await this.cache.set(`provider.onebot.sent.${msgId}`, savedMetadata, 300);
+    return msgId;
   }
 
-  async sendForward(target: Target, message: ForwardPackedMessage) {
+  async sendForward(
+    target: Target,
+    message: ForwardPackedMessage,
+    savedMetadata: any = {},
+  ) {
     if (!(await this.sendWait())) return;
     const nodes = await Promise.all(
       message
@@ -151,10 +165,16 @@ export class ProviderOnebot implements IProvider {
     const sendPayload = isUser(target)
       ? { user_id: Number(getId(target)), message: nodes }
       : { group_id: Number(getId(target)), message: nodes };
-    this.logger.info('sending forward message')
-    return (
+    const msgId = (
       await this.ws?.send_forward_msg(sendPayload)
     )?.message_id?.toString();
+    this.logger.info(
+      { message_id: msgId, ...message, ...savedMetadata },
+      'sent forward message',
+    );
+    if (msgId)
+      await this.cache.set(`provider.onebot.sent.${msgId}`, savedMetadata, 300);
+    return msgId;
   }
 
   listen(
@@ -209,6 +229,22 @@ export class ProviderOnebot implements IProvider {
         messages.length > 1 ? messages : messages[0],
       );
     });
+  }
+
+  async getSentMessages() {
+    return (await this.cache.listPrefix('provider.onebot.sent.')).map((k) =>
+      k.substring(21),
+    );
+  }
+
+  async getSentMessageMetadata(msgId: string) {
+    return await this.cache.get(`provider.onebot.sent.${msgId}`);
+  }
+
+  async recallMessage(msgId: string) {
+    await this.ready();
+    this.logger.info({ message_id: msgId }, `recalling message`);
+    await this.ws?.delete_msg({ message_id: Number(msgId) });
   }
 
   getCapability(capability: string): boolean {

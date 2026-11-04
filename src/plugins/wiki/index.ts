@@ -300,8 +300,6 @@ export class WikiCommands implements ICommandProvider {
       return COMMAND_CAUGHT;
     this.logger.info(`wiki page render enabled for ${pageInfo.url}`);
 
-    const finalName = pageInfo.normalized_to || pageInfo.redirect_to || query;
-    const finalSection = pageInfo.redirect_frag || section;
     let buffer: Buffer | null = null;
     if (pageInfo.type === 'documentation')
       buffer = await this.renderer.shotDocumentation(pageInfo.url.toString());
@@ -311,8 +309,13 @@ export class WikiCommands implements ICommandProvider {
       buffer = await this.renderer.shotSpecialPage(pageInfo.url.toString());
     else if (query.endsWith('#'))
       buffer = await this.renderer.shotFullPage(pageInfo.url.toString());
-    else if (finalSection)
-      buffer = await this.renderer.shotSection(wiki, finalName, finalSection);
+    else if (pageInfo.sectionId)
+      buffer = await this.renderer.shotSection(
+        wiki,
+        pageInfo.url.toString(),
+        pageInfo.normalized_to || pageInfo.redirect_to || query,
+        pageInfo.sectionId,
+      );
     else buffer = await this.renderer.shotInfobox(pageInfo.url.toString());
 
     if (buffer) await provider.send(scope, image(buffer));

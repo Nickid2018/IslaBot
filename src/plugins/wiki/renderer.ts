@@ -145,7 +145,12 @@ export class WikiRenderer {
     return [...found, ...root.querySelectorAll(selector)];
   }
 
-  async shot(content: string, id: string, urlStr: string) {
+  async shot(
+    content: string,
+    id: string,
+    urlStr: string,
+    replaceWith?: string,
+  ) {
     const document = new JSDOM(content);
     const element = this.traverseQuerySelector(
       `#${id}`,
@@ -154,6 +159,9 @@ export class WikiRenderer {
     if (!element) {
       this.logger.warn(`no valid #${id} for '${urlStr}'`);
       return null;
+    }
+    if (replaceWith) {
+      element.innerHTML = replaceWith;
     }
     this.cleanDocument(document, element as HTMLElement, urlStr);
     return await this.webRenderer.render(
@@ -205,9 +213,19 @@ export class WikiRenderer {
     });
   }
 
-  async shotSection(wiki: WikiInstance, title: string, sectionId: string) {
+  async shotSection(
+    wiki: WikiInstance,
+    url: string,
+    title: string,
+    sectionId: string,
+  ) {
     const cacheKey = `wiki:rendered:section:[${wiki.apiURL}]:${title}:${sectionId}`;
     return this.ifNoCache(cacheKey, async () => {
+      const content = await retries(this.fetcher.fetchText, 3)(url);
+      if (!content) {
+        this.logger.warn(`cannot fetch document for '${url}'`);
+        return null;
+      }
       const parsed = await retries(
         this.fetcher.fetchJson,
         3,
@@ -221,7 +239,7 @@ export class WikiRenderer {
         return null;
       }
       const html = parsed.parse.text['*'] as string;
-      return await this.shot(html, 'mw-content-text', wiki.apiURL);
+      return await this.shot(content, 'mw-content-text', url, html);
     });
   }
 

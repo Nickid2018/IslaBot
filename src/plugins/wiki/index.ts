@@ -257,6 +257,12 @@ export class WikiCommands implements ICommandProvider {
       pageInfo.sections.forEach((section, i) => {
         content += `\n${i + 1}: ${section}`;
       });
+      content += `\n5分钟内回复此消息中的序号可查询对应章节`;
+      savedMetadata.type = 'wiki-search-section';
+      savedMetadata.wiki = wiki.apiURL;
+      savedMetadata.title = query;
+      savedMetadata.sections = pageInfo.sections;
+      savedMetadata.target = target;
     }
     if (pageInfo.similarTitles && pageInfo.similarTitles.length > 0) {
       content += '\n相似页面为：';
@@ -266,7 +272,7 @@ export class WikiCommands implements ICommandProvider {
       content += `\n5分钟内回复此消息中的序号可查询对应页面`;
       savedMetadata.type = 'wiki-search-result';
       savedMetadata.wiki = wiki.apiURL;
-      savedMetadata.content = pageInfo.similarTitles;
+      savedMetadata.titles = pageInfo.similarTitles;
       savedMetadata.section = section;
       savedMetadata.target = target;
     }
@@ -323,7 +329,12 @@ export class WikiCommands implements ICommandProvider {
     msgId?: string,
     metadata?: any,
   ) {
-    if (!msgId || !metadata || metadata.type !== 'wiki-search-result')
+    if (
+      !msgId ||
+      !metadata ||
+      (metadata.type !== 'wiki-search-result' &&
+        metadata.type !== 'wiki-search-section')
+    )
       return COMMAND_SKIPPED;
     if (metadata.target !== target) return COMMAND_SKIPPED;
     const indexStr = Array.isArray(message)
@@ -336,18 +347,34 @@ export class WikiCommands implements ICommandProvider {
     if (isNaN(index) || index <= 0 || index > metadata.content.length)
       return COMMAND_SKIPPED;
     const wiki = this.storage.getWikiInstance(metadata.wiki);
-    const title = metadata.content[index - 1];
-    const section = metadata.section;
-    const page = await wiki.getPageInfo(title, section);
-    await this.doWikiResult(
-      provider,
-      target,
-      scope,
-      title,
-      section,
-      page,
-      wiki,
-    );
+
+    if (metadata.type === 'wiki-search-result') {
+      const title = metadata.titles[index - 1];
+      const section = metadata.section;
+      const page = await wiki.getPageInfo(title, section);
+      await this.doWikiResult(
+        provider,
+        target,
+        scope,
+        title,
+        section,
+        page,
+        wiki,
+      );
+    } else {
+      const title = metadata.title;
+      const section = metadata.sections[index - 1];
+      const page = await wiki.getPageInfo(title, section);
+      await this.doWikiResult(
+        provider,
+        target,
+        scope,
+        title,
+        section,
+        page,
+        wiki,
+      );
+    }
     return COMMAND_CAUGHT;
   }
 

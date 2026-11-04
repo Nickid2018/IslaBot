@@ -33,7 +33,7 @@ export class CommandResolver {
     for (const p of commandProviders) {
       const commands = p.commands();
       const invoke = Object.create(p);
-      (p as any).ctx = ctx;
+      (invoke as any).ctx = ctx;
       for (const command of commands) {
         try {
           const result = await command.apply(invoke, argv);

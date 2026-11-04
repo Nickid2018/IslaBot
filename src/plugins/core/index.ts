@@ -7,7 +7,8 @@ import {
   ICommandProvider,
   permission,
   prefix,
-  regex, replied,
+  regex,
+  replied,
 } from '../../api/command';
 import { LEVELS_INDEX, Permission } from '../../core/permission';
 import { PermissionLevel } from '../../../generated/prisma/enums';
@@ -32,8 +33,8 @@ export class CoreCommands implements ICommandProvider {
     private readonly logger: Logger,
   ) {}
 
-  @prefix('~exit')
   @permission(PermissionLevel.SYSOP)
+  @prefix('~exit')
   async exit(
     provider: IProvider,
     _: Target,
@@ -44,8 +45,8 @@ export class CoreCommands implements ICommandProvider {
     return COMMAND_CAUGHT;
   }
 
-  @prefix('~permission get')
   @permission(PermissionLevel.ADMIN)
+  @prefix('~permission get')
   async permissionGet(
     provider: IProvider,
     target: Target,
@@ -65,8 +66,8 @@ export class CoreCommands implements ICommandProvider {
     return COMMAND_CAUGHT;
   }
 
-  @regex(/^~permission set (BANNED|SEMIBANNED|NORMAL|ADMIN)(.*)$/)
   @permission(PermissionLevel.ADMIN)
+  @regex(/^~permission set (BANNED|SEMIBANNED|NORMAL|ADMIN)(.*)$/)
   async permissionSet(
     provider: IProvider,
     target: Target,
@@ -102,8 +103,8 @@ export class CoreCommands implements ICommandProvider {
     return COMMAND_CAUGHT;
   }
 
-  @regex(/^~group enable (.*)$/)
   @permission(PermissionLevel.SYSOP)
+  @regex(/^~group enable (.*)$/)
   async enableGroup(
     provider: IProvider,
     _: Target,
@@ -119,8 +120,8 @@ export class CoreCommands implements ICommandProvider {
     return COMMAND_CAUGHT;
   }
 
-  @regex(/^~group disable (.*)$/)
   @permission(PermissionLevel.SYSOP)
+  @regex(/^~group disable (.*)$/)
   async disableGroup(
     provider: IProvider,
     _: Target,
@@ -136,8 +137,8 @@ export class CoreCommands implements ICommandProvider {
     return COMMAND_CAUGHT;
   }
 
-  @regex(/^~feature enable (.*)$/)
   @permission(PermissionLevel.ADMIN)
+  @regex(/^~feature enable (.*)$/)
   async enableFeature(
     provider: IProvider,
     _: Target,
@@ -154,8 +155,8 @@ export class CoreCommands implements ICommandProvider {
     return COMMAND_CAUGHT;
   }
 
-  @regex(/^~feature disable (.*)$/)
   @permission(PermissionLevel.ADMIN)
+  @regex(/^~feature disable (.*)$/)
   async disableFeature(
     provider: IProvider,
     _: Target,
@@ -172,9 +173,9 @@ export class CoreCommands implements ICommandProvider {
     return COMMAND_CAUGHT;
   }
 
-  @prefix('~recall')
   @permission(PermissionLevel.ADMIN)
   @replied(false)
+  @prefix('~recall')
   async recall(
     provider: IProvider,
     _: Target,
@@ -198,6 +199,6 @@ export class CoreCommands implements ICommandProvider {
       this.enableFeature,
       this.disableFeature,
       this.recall,
-    ].map((i) => i.bind(this));
+    ];
   }
 }

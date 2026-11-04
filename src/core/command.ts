@@ -28,16 +28,19 @@ export class CommandResolver {
     const commandProviders = container.resolveAll<ICommandProvider>(
       COMMAND_PROVIDER_TOKEN,
     );
-    const commands = commandProviders.map((c) => c.commands()).flat();
-    for (const command of commands) {
-      try {
-        if (
-          (await command(this.provider, target, scope, msgId, message)) ===
-          COMMAND_CAUGHT
-        )
-          return;
-      } catch (e) {
-        this.logger.error(e);
+    const ctx = {};
+    const argv = [this.provider, target, scope, msgId, message] as any;
+    for (const p of commandProviders) {
+      const commands = p.commands();
+      const invoke = Object.create(p);
+      (p as any).ctx = ctx;
+      for (const command of commands) {
+        try {
+          const result = await command.apply(invoke, argv);
+          if (result === COMMAND_CAUGHT) return;
+        } catch (e) {
+          this.logger.error(e);
+        }
       }
     }
   };

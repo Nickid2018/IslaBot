@@ -36,10 +36,7 @@ export function predicate(
   };
 }
 
-export function feature(
-  flag: string,
-  defaultVal: boolean = false,
-): MethodDecorator {
+export function feature(flag: string, dVal: boolean = false): MethodDecorator {
   return function (
     _target: any,
     _propertyKey: string | symbol,
@@ -47,12 +44,16 @@ export function feature(
   ) {
     const originalMethod = descriptor.value;
     descriptor.value = async function (...args: any[]) {
-      const provider = args[0] as IProvider;
-      const scope = args[2] as string;
-      const pScope = `${provider.id()}:${scope}`;
-      const convert = this as { features: Features };
-      if (!(await convert.features.featureEnabled(pScope, flag, defaultVal)))
-        return COMMAND_SKIPPED;
+      const ctx = (this as any).ctx || {};
+      const ctxKey = `has_feature_${flag}`;
+      if (!(ctxKey in ctx)) {
+        const provider = args[0] as IProvider;
+        const scope = args[2] as string;
+        const pScope = `${provider.id()}:${scope}`;
+        const convert = this as { features: Features };
+        ctx[ctxKey] = await convert.features.featureEnabled(pScope, flag, dVal);
+      }
+      if (!ctx[ctxKey]) return COMMAND_SKIPPED;
       return await originalMethod.apply(this, args);
     };
     return descriptor;
@@ -117,12 +118,16 @@ export function permission(permission: PermissionLevel): MethodDecorator {
   ) {
     const originalMethod = descriptor.value;
     descriptor.value = async function (...args: any[]) {
-      const provider = args[0] as IProvider;
-      const target = args[1] as Target;
-      const userKey = `${provider.id()}:${target}`;
-      const convert = this as { permission: Permission };
-      if (!(await convert.permission.hasPermission(userKey, permission)))
-        return COMMAND_SKIPPED;
+      const ctx = (this as any).ctx || {};
+      const ctxKey = `has_permission_${permission}`;
+      if (!(ctxKey in ctx)) {
+        const provider = args[0] as IProvider;
+        const target = args[1] as Target;
+        const user = `${provider.id()}:${target}`;
+        const convert = this as { permission: Permission };
+        ctx[ctxKey] = await convert.permission.hasPermission(user, permission);
+      }
+      if (!ctx[ctxKey]) return COMMAND_SKIPPED;
       return await originalMethod.apply(this, args);
     };
     return descriptor;
@@ -137,17 +142,28 @@ export function replied(metadata: boolean = true): MethodDecorator {
   ) {
     const originalMethod = descriptor.value;
     descriptor.value = async function (...args: any[]) {
-      const provider = args[0] as IProvider;
-      const message = args[4] as Message;
-      const reply = Array.isArray(message)
-        ? message.find((m) => m.type === 'reply')
-        : undefined;
-      if (!reply) return COMMAND_SKIPPED;
-      const sent = await provider.getSentMessages();
-      if (!sent.includes(reply.target)) return COMMAND_SKIPPED;
-      args.push(reply.target);
-      if (metadata)
-        args.push(await provider.getSentMessageMetadata(reply.target));
+      const ctx = (this as any).ctx || {};
+      if (!('reply_data' in ctx)) {
+        const provider = args[0] as IProvider;
+        const message = args[4] as Message;
+        const reply = Array.isArray(message)
+          ? message.find((m) => m.type === 'reply')
+          : undefined;
+        if (!reply) return COMMAND_SKIPPED;
+        const sent = await provider.getSentMessages();
+        ctx.reply_data = sent.includes(reply.target) && { id: reply.target };
+      }
+      if (!ctx.reply_data) return COMMAND_SKIPPED;
+      const replyData = ctx.reply_data;
+      const target = ctx.reply_data.id;
+      args.push(target);
+      if (metadata) {
+        if (!replyData.metadata) {
+          const provider = args[0] as IProvider;
+          replyData.metadata = await provider.getSentMessageMetadata(target);
+        }
+        args.push(replyData.metadata);
+      }
       return await originalMethod.apply(this, args);
     };
     return descriptor;

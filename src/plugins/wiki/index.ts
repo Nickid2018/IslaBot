@@ -31,9 +31,9 @@ export class WikiCommands implements ICommandProvider {
     private readonly renderer: WikiRenderer,
   ) {}
 
-  @regex(/\[\[(.+?)]]/)
   @feature('wiki.inline')
   @permission(PermissionLevel.NORMAL)
+  @regex(/\[\[(.+?)]]/)
   async doWikiInline(
     provider: IProvider,
     target: Target,
@@ -46,9 +46,9 @@ export class WikiCommands implements ICommandProvider {
     return await this.doWiki(provider, target, scope, match[1]);
   }
 
-  @regex(/^~wiki (.+)$/)
   @feature('wiki.command', true)
   @permission(PermissionLevel.NORMAL)
+  @regex(/^~wiki (.+)$/)
   async doWikiGlobal(
     provider: IProvider,
     target: Target,
@@ -61,9 +61,9 @@ export class WikiCommands implements ICommandProvider {
     return await this.doWiki(provider, target, scope, match[1]);
   }
 
-  @regex(/^~wikiadd ([^ ]+) (.+)$/)
   @feature('wiki', true)
   @permission(PermissionLevel.ADMIN)
+  @regex(/^~wikiadd ([^ ]+) (.+)$/)
   async addWiki(
     provider: IProvider,
     _: Target,
@@ -85,9 +85,9 @@ export class WikiCommands implements ICommandProvider {
     return COMMAND_CAUGHT;
   }
 
-  @regex(/^~wikiremove (.+)$/)
   @feature('wiki', true)
   @permission(PermissionLevel.ADMIN)
+  @regex(/^~wikiremove (.+)$/)
   async removeWiki(
     provider: IProvider,
     _: Target,
@@ -109,9 +109,9 @@ export class WikiCommands implements ICommandProvider {
     return COMMAND_CAUGHT;
   }
 
-  @regex(/^~wikistart (.+)$/)
   @feature('wiki', true)
   @permission(PermissionLevel.ADMIN)
+  @regex(/^~wikistart (.+)$/)
   async setStartWiki(
     provider: IProvider,
     _: Target,
@@ -392,6 +392,6 @@ export class WikiCommands implements ICommandProvider {
       this.removeWiki,
       this.setStartWiki,
       this.replyMessage,
-    ].map((f) => f.bind(this));
+    ];
   }
 }

@@ -1,5 +1,11 @@
-import { inject, injectable, singleton } from 'tsyringe';
-import { ForwardPackedMessage, IProvider, Message, PROVIDER_TOKEN, Target } from '../definitions';
+import { injectable, singleton } from 'tsyringe';
+import {
+  ForwardPackedMessage,
+  IProvider,
+  Message,
+  PROVIDER_TOKEN,
+  Target,
+} from '../definitions';
 import {
   BoxRenderable,
   CliRenderer,
@@ -8,7 +14,7 @@ import {
   InputRenderable,
   InputRenderableEvents,
   KeyEvent,
-  TextRenderable
+  TextRenderable,
 } from '@opentui/core';
 import { Logger } from '../../core/logger';
 import * as readline from 'node:readline/promises';
@@ -83,7 +89,7 @@ export class ProviderConsole implements IProvider {
     input.on(InputRenderableEvents.ENTER, (val: string) => {
       if (!val) return;
       input.value = '';
-      this.logger.info(`Console: ${val}`);
+      this.logger.info({ content: val }, `console input`);
       this.callback?.(`${this.lastMsgId++}`, val);
       this.commandHistory.push(val);
       if (this.commandHistory.length > 100) this.commandHistory.shift();
@@ -131,6 +137,8 @@ export class ProviderConsole implements IProvider {
     (async () => {
       while (!STOP_CONTROLLER.signal.aborted) {
         const line = await rl.question('');
+        if (!line) continue;
+        this.logger.info({ content: line }, `console input`);
         this.callback?.(`${this.lastMsgId++}`, line);
       }
     })();
@@ -161,13 +169,13 @@ export class ProviderConsole implements IProvider {
 
   async send(_: Target, message: Message) {
     this.filterBuffers(message);
-    this.logger.info(message, 'Console Response');
+    this.logger.info(message, 'console response');
     return undefined;
   }
 
   async sendForward(_: Target, message: ForwardPackedMessage) {
     message.forEach(this.filterBuffers);
-    this.logger.info(message, 'Console Response');
+    this.logger.info(message, 'console response');
     return undefined;
   }
 
@@ -179,8 +187,7 @@ export class ProviderConsole implements IProvider {
     return {};
   }
 
-  async recallMessage(_: string) {
-  }
+  async recallMessage(_: string) {}
 
   getCapability(capability: string): boolean {
     return false;

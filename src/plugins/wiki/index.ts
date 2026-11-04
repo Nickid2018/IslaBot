@@ -343,12 +343,12 @@ export class WikiCommands implements ICommandProvider {
         ? message
         : null;
     if (!indexStr) return COMMAND_SKIPPED;
-    const index = parseInt(indexStr.content.trim());
-    if (isNaN(index) || index <= 0 || index > metadata.content.length)
-      return COMMAND_SKIPPED;
     const wiki = this.storage.getWikiInstance(metadata.wiki);
 
     if (metadata.type === 'wiki-search-result') {
+      const index = parseInt(indexStr.content.trim());
+      if (isNaN(index) || index <= 0 || index > metadata.titles.length)
+        return COMMAND_SKIPPED;
       const title = metadata.titles[index - 1];
       const section = metadata.section;
       const page = await wiki.getPageInfo(title, section);
@@ -362,6 +362,9 @@ export class WikiCommands implements ICommandProvider {
         wiki,
       );
     } else {
+      const index = parseInt(indexStr.content.trim());
+      if (isNaN(index) || index <= 0 || index > metadata.sections.length)
+        return COMMAND_SKIPPED;
       const title = metadata.title;
       const section = metadata.sections[index - 1];
       const page = await wiki.getPageInfo(title, section);

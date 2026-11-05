@@ -89,7 +89,14 @@ export class MinecraftQueryCommands implements ICommandProvider {
       }
       const messages: MessageChain = [text(message)];
       if (result.favicon)
-        messages.push(image(Buffer.from(result.favicon, 'base64')));
+        messages.push(
+          image(
+            Buffer.from(
+              result.favicon.substring(result.favicon.indexOf(',') + 1),
+              'base64',
+            ),
+          ),
+        );
       await provider.send(scope, messages);
     } else {
       await provider.send(scope, text('未能查询到此地址的服务器'));

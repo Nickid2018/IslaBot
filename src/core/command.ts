@@ -32,8 +32,7 @@ export class CommandResolver {
     const argv = [this.provider, target, scope, msgId, message] as any;
     for (const p of commandProviders) {
       const commands = p.commands();
-      const invoke = Object.create(p);
-      (invoke as any).ctx = ctx;
+      const invoke = Object.assign(Object.create(p), { ctx });
       for (const command of commands) {
         try {
           const result = await command.apply(invoke, argv);

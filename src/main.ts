@@ -17,13 +17,15 @@ const manuallyStop = () => {
 process.on('SIGINT', manuallyStop);
 process.on('SIGTERM', manuallyStop);
 
+export let providers: IProvider[] = [];
+
 process.stdin.resume();
 (async () => {
   await import('./plugins');
   await import('./providers');
 
   const features = container.resolve(Features);
-  const providers = container.resolveAll<IProvider>(PROVIDER_TOKEN);
+  providers = container.resolveAll<IProvider>(PROVIDER_TOKEN);
   providers.forEach((p) => p.init());
   providers.map((p) => new CommandResolver(p, features, logger));
 

@@ -1,4 +1,4 @@
-import { container, injectable } from 'tsyringe';
+import { injectable } from 'tsyringe';
 import {
   COMMAND_CAUGHT,
   COMMAND_PROVIDER_TOKEN,
@@ -12,14 +12,13 @@ import {
 } from '../../api/command';
 import { LEVELS_INDEX, Permission } from '../../core/permission';
 import { PermissionLevel } from '../../../generated/prisma/enums';
-import { STOP_CONTROLLER } from '../../main';
+import { providers, STOP_CONTROLLER } from '../../main';
 import {
   AtMessage,
   findFirstText,
   findFirstType,
   IProvider,
   Message,
-  PROVIDER_TOKEN,
   Target,
   text,
 } from '../../providers';
@@ -204,7 +203,6 @@ export class CoreCommands implements ICommandProvider {
     if (match[3]) {
       await provider.send(scope, text(match[4]));
     } else {
-      const providers = container.resolveAll<IProvider>(PROVIDER_TOKEN);
       const sendTarget = providers.find((p) => p.id() === match[1]);
       if (!sendTarget) return COMMAND_SKIPPED;
       await sendTarget.send(match[2] as Target, text(match[4]));

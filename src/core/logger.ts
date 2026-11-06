@@ -38,6 +38,7 @@ export class Logger {
               crlf: true,
               colorize: true,
               destination: writeFd,
+              level: process.env.LOG_LEVEL || 'info',
             },
           },
         ],

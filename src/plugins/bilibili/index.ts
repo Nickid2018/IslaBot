@@ -179,6 +179,6 @@ export class BilibiliCommands implements ICommandProvider {
   }
 
   commands() {
-    return [this.doAvid, this.doBvid];
+    return [this.doAvid, this.doBvid, this.doShortLink];
   }
 }

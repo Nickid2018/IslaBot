@@ -1,4 +1,4 @@
-import { injectable } from 'tsyringe';
+import { container, injectable } from 'tsyringe';
 import {
   COMMAND_CAUGHT,
   COMMAND_PROVIDER_TOKEN,
@@ -19,6 +19,7 @@ import {
   findFirstType,
   IProvider,
   Message,
+  PROVIDER_TOKEN,
   Target,
   text,
 } from '../../providers';
@@ -189,6 +190,28 @@ export class CoreCommands implements ICommandProvider {
     return COMMAND_CAUGHT;
   }
 
+  @permission(PermissionLevel.SYSOP)
+  @regex(/^~say (?:([^ :]+):([^ :]+:[^ :]+)|(this)) (.+)$/)
+  async say(
+    provider: IProvider,
+    _: Target,
+    scope: Target,
+    __: string,
+    ___: Message,
+    match?: RegExpMatchArray,
+  ) {
+    if (!match) return COMMAND_SKIPPED;
+    if (match[3]) {
+      await provider.send(scope, text(match[4]));
+    } else {
+      const providers = container.resolveAll<IProvider>(PROVIDER_TOKEN);
+      const sendTarget = providers.find((p) => p.id() === match[1]);
+      if (!sendTarget) return COMMAND_SKIPPED;
+      await sendTarget.send(match[2] as Target, text(match[4]));
+    }
+    return COMMAND_CAUGHT;
+  }
+
   commands() {
     return [
       this.exit,
@@ -199,6 +222,7 @@ export class CoreCommands implements ICommandProvider {
       this.enableFeature,
       this.disableFeature,
       this.recall,
+      this.say,
     ];
   }
 }

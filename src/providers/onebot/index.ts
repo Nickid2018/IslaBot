@@ -62,7 +62,9 @@ export class ProviderOnebot implements IProvider {
   }
 
   ready(): Promise<void> {
-    return this.connected ?? Promise.reject<void>();
+    return (
+      this.connected ?? Promise.reject<void>('onebot client not connected')
+    );
   }
 
   private async construct(message: Message) {

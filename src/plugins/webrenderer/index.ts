@@ -21,6 +21,7 @@ export class WebRenderer implements Disposable {
   ) {
     const browser = await this.browser;
     const page = await browser.newPage();
+    page.setDefaultTimeout(0); // timeout should use abort signal
     this.logger.info('prepare to render web page')
     await page.setContent(html, { waitUntil: 'domcontentloaded', signal });
     await page.setViewport(viewport);

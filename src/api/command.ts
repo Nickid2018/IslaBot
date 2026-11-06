@@ -110,7 +110,9 @@ export function regex(regex: RegExp, first: boolean = true): MethodDecorator {
   };
 }
 
-export function permission(permission: PermissionLevel): MethodDecorator {
+export function permission(
+  permission: PermissionLevel = PermissionLevel.NORMAL,
+): MethodDecorator {
   return function (
     _target: any,
     _propertyKey: string | symbol,

@@ -19,7 +19,6 @@ import {
 import { Permission } from '../../core/permission';
 import { Features } from '../../core/features';
 import { Logger } from '../../core/logger';
-import { PermissionLevel } from '../../../generated/prisma/enums';
 import * as udp from 'dgram';
 import * as dns from 'node:dns/promises';
 import * as net from 'node:net';
@@ -37,7 +36,7 @@ export class MinecraftQueryCommands implements ICommandProvider {
   ) {}
 
   @feature('mc', true)
-  @permission(PermissionLevel.NORMAL)
+  @permission()
   @regex(/^~server (.+)$/)
   async doServerQuery(
     provider: IProvider,

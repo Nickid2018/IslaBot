@@ -27,82 +27,69 @@ export class Fetcher {
     });
   }
 
+  async _logNotOK(resp: Response) {
+    this.logger.warn(
+      {
+        status: resp.status,
+        content:
+          resp.status != 404 && resp.status != 403
+            ? await resp.text()
+            : '<dropped>',
+      },
+      `failed to fetch ${resp.url}`,
+    );
+  }
+
   fetchJson = async (url: URL | string | Request, init?: RequestInit) => {
     try {
       const resp = await this.fetch(url, init);
-      if (!resp.ok) {
-        this.logger.warn(
-          {
-            status: resp.status,
-            content:
-              resp.status != 404 && resp.status != 403
-                ? await resp.text()
-                : '<dropped>',
-          },
-          `failed to fetch ${url}`,
-        );
-        return null;
-      }
+      if (!resp.ok) return await this._logNotOK(resp);
       return await resp.json();
     } catch (e) {
-      this.logger.warn(e, `failed to fetch ${url}`);
-      return null;
+      return this.logger.warn(e, `failed to fetch ${url}`);
     }
   };
 
   fetchText = async (url: URL | string | Request, init?: RequestInit) => {
     try {
       const resp = await this.fetch(url, init);
-      if (!resp.ok) {
-        this.logger.warn(
-          {
-            status: resp.status,
-            content:
-              resp.status != 404 && resp.status != 403
-                ? await resp.text()
-                : '<dropped>',
-          },
-          `failed to fetch ${url}`,
-        );
-        return null;
-      }
+      if (!resp.ok) return this._logNotOK(resp);
       return await resp.text();
     } catch (e) {
-      this.logger.warn(e, `failed to fetch ${url}`);
-      return null;
+      return this.logger.warn(e, `failed to fetch ${url}`);
     }
   };
 
-  fetchTextNoExcept = async (url: URL | string | Request, init?: RequestInit) => {
+  fetchTextNoExcept = async (
+    url: URL | string | Request,
+    init?: RequestInit,
+  ) => {
     try {
       const resp = await this.fetch(url, init);
       return await resp.text();
     } catch (e) {
-      this.logger.warn(e, `failed to fetch ${url}`);
-      return null;
+      return this.logger.warn(e, `failed to fetch ${url}`);
     }
   };
 
   fetchBlob = async (url: URL | string) => {
     try {
       const resp = await this.fetch(url);
-      if (!resp.ok) {
-        this.logger.warn(
-          {
-            status: resp.status,
-            content:
-              resp.status != 404 && resp.status != 403
-                ? await resp.text()
-                : '<dropped>',
-          },
-          `failed to fetch image ${url}`,
-        );
-        return null;
-      }
+      if (!resp.ok) return this._logNotOK(resp);
       return Buffer.from(await resp.arrayBuffer());
     } catch (e) {
-      this.logger.warn(e, `failed to fetch image ${url}`);
-      return null;
+      return this.logger.warn(e, `failed to fetch ${url}`);
+    }
+  };
+
+  getRedirectLocation = async (url: string) => {
+    try {
+      const resp = await this.fetch(url, { redirect: 'manual' });
+      if (!resp.ok) return await this._logNotOK(resp);
+      if (!resp.redirected) return this.logger.warn(`'${url}' not redirected`);
+      return resp.headers.get('Location');
+    } catch (e) {
+      return this.logger.warn(e, `failed to fetch ${url}`);
     }
   };
 }

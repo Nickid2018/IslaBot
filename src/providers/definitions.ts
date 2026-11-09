@@ -25,19 +25,18 @@ export function image(content: string | Buffer, name?: string): ImageMessage {
 }
 
 export function findFirstText(message: Message) {
-  if (!Array.isArray(message)) {
-    if (message.type !== 'text') return '';
-    else return message.content;
-  }
-  return message.find((m) => m.type === 'text')?.content || '';
+  return findFirstType(message, 'text')?.content || '';
 }
 
-export function findFirstType(message: Message, type: NormalMessage['type']) {
+export function findFirstType<T extends NormalMessage['type']>(
+  message: Message,
+  type: T,
+): (NormalMessage & { type: T }) | undefined {
   if (!Array.isArray(message)) {
     if (message.type !== type) return undefined;
-    else return message;
+    else return message as any;
   }
-  return message.find((m) => m.type === type);
+  return message.find((m) => m.type === type) as any;
 }
 
 export type Target = `${'user' | 'group'}:${string}`;

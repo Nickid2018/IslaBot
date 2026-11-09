@@ -1,7 +1,8 @@
-import { inject, injectable } from 'tsyringe';
+import { delay, inject, injectable } from 'tsyringe';
 import { Database } from './database';
 import { CACHE_TOKEN, ICache } from './cache';
 import { Logger } from './logger';
+import { EventBus } from './events';
 
 let initialized = false;
 
@@ -11,6 +12,7 @@ export class Features {
     private readonly db: Database,
     @inject(CACHE_TOKEN) private readonly cache: ICache,
     private readonly logger: Logger,
+    @inject(delay(() => EventBus)) private readonly eventBus: EventBus,
   ) {
     if (!initialized) {
       this.enableGroup('console:user:0').catch(this.logger.error);
@@ -89,10 +91,14 @@ export class Features {
         this.cache.set(k, 'false'),
       ),
     );
+    await this.eventBus.send(`feature.disable`, {
+      group: scope,
+      feature: null,
+    });
   }
 
   async enableFeature(scope: string, feature: string) {
-    if (!await this.groupEnabled(scope)) return false;
+    if (!(await this.groupEnabled(scope))) return false;
     const cacheKey = `feature:${scope}:${feature}`;
     await this.db.prisma.featureEnables.upsert({
       where: { scope_feature: { scope, feature } },
@@ -111,5 +117,9 @@ export class Features {
       update: { enabled: false },
     });
     await this.cache.set(cacheKey, 'false');
+    await this.eventBus.send(`feature.disable`, {
+      group: scope,
+      feature: feature,
+    });
   }
 }

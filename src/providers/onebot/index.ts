@@ -44,7 +44,7 @@ export class ProviderOnebot implements IProvider {
         accessToken: this.cfg.get('onebot.secret') || undefined,
         reconnection: { enable: true },
       });
-      this.ws.on('socket.open', (err) => {
+      this.ws.on('socket.open', () => {
         this.logger.info(`onebot socket opened`);
       });
       this.ws.on('socket.error', (err) =>

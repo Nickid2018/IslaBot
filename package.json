@@ -21,6 +21,7 @@
     "@types/node": "^26.6.5",
     "prettier": "^3.3.1",
     "prisma": "^7.10.1",
+    "prisma-json-types-generator": "^6.0.0",
     "ttsc": "^0.34.2",
     "typescript": "^7.0.2"
   },

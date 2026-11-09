@@ -34,7 +34,8 @@ process.stdin.resume();
 
   const timeout = new Promise((r) => setTimeout(() => r(true), 5000));
   const result = await Promise.any([container.dispose(), timeout]);
-  if (result) logger.warn("bot core doesn't stop in time, force stopped.");
+  if (result) // logger may disposed
+    process.stderr.write("bot core doesn't stop in time, force stopped.");
 
   process.exit(0);
 })();

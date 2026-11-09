@@ -1,4 +1,4 @@
-import { injectable, singleton } from 'tsyringe';
+import { inject, injectable, singleton } from 'tsyringe';
 import {
   ForwardPackedMessage,
   IProvider,
@@ -20,17 +20,22 @@ import { Logger } from '../../core/logger';
 import * as readline from 'node:readline/promises';
 import { STOP_CONTROLLER } from '../../main';
 import { Writable } from 'node:stream';
+import { CACHE_TOKEN, ICache } from '../../core/cache';
 
 @injectable({ token: PROVIDER_TOKEN })
 @singleton()
 export class ProviderConsole implements IProvider {
   private callback?: (msgId: string, message: string) => void;
+  private sentMsgId = 0;
   private lastMsgId = 0;
   private readonly commandHistory: string[] = [];
   private prepareBuffer: string = '';
   private commandCursor: number = 0;
 
-  constructor(private readonly logger: Logger) {}
+  constructor(
+    private readonly logger: Logger,
+    @inject(CACHE_TOKEN) private readonly cache: ICache,
+  ) {}
 
   init(): void {
     (async () => {
@@ -153,7 +158,10 @@ export class ProviderConsole implements IProvider {
     ) => void,
   ): void {
     this.callback = (msgId: string, message: string) => {
-      callback('user:0', 'user:0', msgId, { type: 'text', content: message });
+      callback('user:0', 'user:0', msgId, [
+        { type: 'reply', target: (this.sentMsgId - 1).toString() },
+        { type: 'text', content: message },
+      ]);
     };
   }
 
@@ -167,24 +175,34 @@ export class ProviderConsole implements IProvider {
       message.content = '[Binary Data]';
   }
 
-  async send(_: Target, message: Message) {
+  async send(_: Target, message: Message, metadata?: any) {
     this.filterBuffers(message);
     this.logger.info(message, 'console response');
+    await this.cache.set(
+      `provider.console.sent.${this.sentMsgId++}`,
+      metadata,
+      300,
+    );
     return undefined;
   }
 
-  async sendForward(_: Target, message: ForwardPackedMessage) {
+  async sendForward(_: Target, message: ForwardPackedMessage, metadata?: any) {
     message.forEach(this.filterBuffers);
     this.logger.info(message, 'console response');
+    await this.cache.set(
+      `provider.console.sent.${this.sentMsgId++}`,
+      metadata,
+      300,
+    );
     return undefined;
   }
 
   async getSentMessages() {
-    return [];
+    return Array.from({ length: this.sentMsgId }, (_, idx) => idx.toString());
   }
 
-  async getSentMessageMetadata(_: string) {
-    return {};
+  async getSentMessageMetadata(id: string) {
+    return await this.cache.get(`provider.console.sent.${id}`);
   }
 
   async recallMessage(_: string) {}

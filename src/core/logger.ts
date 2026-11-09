@@ -1,4 +1,4 @@
-import { injectable, singleton } from 'tsyringe';
+import { Disposable, injectable, singleton } from 'tsyringe';
 import pino, { LogFn } from 'pino';
 // @ts-ignore
 import { pipeSync } from 'node-pipe';
@@ -7,7 +7,7 @@ import { Writable } from 'node:stream';
 
 @injectable()
 @singleton()
-export class Logger {
+export class Logger implements Disposable {
   private readonly logger: pino.Logger;
   private readonly readStream: fs.ReadStream;
 
@@ -63,4 +63,8 @@ export class Logger {
   error: LogFn;
   debug: LogFn;
   trace: LogFn;
+
+  async dispose() {
+    await new Promise((r) => this.logger.flush(r));
+  }
 }

@@ -8,6 +8,10 @@ generator client {
   output   = "../generated/prisma"
 }
 
+generator json {
+  provider = "prisma-json-types-generator"
+}
+
 datasource db {
   provider = "sqlite"
 }
@@ -60,4 +64,29 @@ model ScopeInterwiki {
 
   @@unique([scope, prefix])
   @@map("scope_interwikis")
+}
+
+model MinecraftServer {
+  id                    Int                    @id @default(autoincrement())
+  endpoint              String                 @unique
+  owner                 String
+  /// @Type [StringArray]
+  operators             Json                   @default("[]")
+  credential            String?
+  minecraftServerScopes MinecraftServerScope[]
+
+  @@index([endpoint])
+  @@map("minecraft_server")
+}
+
+model MinecraftServerScope {
+  id       Int             @id @default(autoincrement())
+  scope    String
+  name     String
+  altName  String?         @map("alt_name")
+  serverId Int             @map("server_id")
+  server   MinecraftServer @relation(fields: [serverId], references: [id], onDelete: Cascade)
+
+  @@unique([scope, name])
+  @@map("minecraft_server_scope")
 }

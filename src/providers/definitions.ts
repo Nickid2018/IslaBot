@@ -62,11 +62,13 @@ export interface IProvider {
     target: Target,
     message: Message,
     savedMetadata?: any,
+    reductKeys?: string[],
   ): Promise<string | undefined>;
   sendForward(
     target: Target,
     message: ForwardPackedMessage,
     savedMetadata?: any,
+    reductKeys?: string[],
   ): Promise<string | undefined>;
   listen(
     callback: (

@@ -127,7 +127,12 @@ export class ProviderOnebot implements IProvider {
       message.content = '[Binary Data]';
   }
 
-  async send(target: Target, message: Message, savedMetadata: any = {}) {
+  async send(
+    target: Target,
+    message: Message,
+    savedMetadata: any = {},
+    reductKeys: string[] = [],
+  ) {
     const _countTexts = (message: Message): number => {
       if (Array.isArray(message))
         return message.map(_countTexts).reduce((a, b) => a + b, 0);
@@ -147,7 +152,12 @@ export class ProviderOnebot implements IProvider {
     if (msgId) {
       this.filterBuffers(message);
       this.logger.info(
-        { message_id: msgId, ...message, ...savedMetadata },
+        {
+          message_id: msgId,
+          ...message,
+          ...savedMetadata,
+          ...reductKeys.reduce((p, c) => Object.assign(p, { [c]: '***' }), {}),
+        },
         'sent single message',
       );
       await this.cache.set(`provider.onebot.sent.${msgId}`, savedMetadata, 300);
@@ -159,6 +169,7 @@ export class ProviderOnebot implements IProvider {
     target: Target,
     message: ForwardPackedMessage,
     savedMetadata: any = {},
+    reductKeys: string[] = [],
   ) {
     if (!(await this.sendWait())) return;
     const nodes = await Promise.all(
@@ -172,13 +183,6 @@ export class ProviderOnebot implements IProvider {
           ),
         ),
     );
-    // nodes.forEach((n) => {
-    //   Object.assign(n.data, {
-    //     uin: this.cfg.getInt('onebot.self.id', 1145141919),
-    //     name: this.cfg.get('onebot.self.nickname', 'Forward Message'),
-    //   });
-    // });
-    this.logger.info(nodes, 'sending forward message');
     const sendPayload = isUser(target)
       ? { user_id: Number(getId(target)), messages: nodes }
       : { group_id: Number(getId(target)), messages: nodes };
@@ -188,7 +192,12 @@ export class ProviderOnebot implements IProvider {
     if (msgId) {
       message.forEach(this.filterBuffers);
       this.logger.info(
-        { message_id: msgId, content: message, ...savedMetadata },
+        {
+          message_id: msgId,
+          content: message,
+          ...savedMetadata,
+          ...reductKeys.reduce((p, c) => Object.assign(p, { [c]: '***' }), {}),
+        },
         'sent forward message',
       );
       await this.cache.set(`provider.onebot.sent.${msgId}`, savedMetadata, 300);

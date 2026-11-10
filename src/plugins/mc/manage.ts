@@ -242,6 +242,7 @@ export class MinecraftManageCommands
         sid: serverInfo.server.id,
         pv: privateKey,
       },
+      ['pv'],
     );
     this.logger.info(`credential request for ${serverInfo.server.endpoint}`);
     return COMMAND_CAUGHT;

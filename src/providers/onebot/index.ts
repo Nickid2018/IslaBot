@@ -162,15 +162,19 @@ export class ProviderOnebot implements IProvider {
   ) {
     if (!(await this.sendWait())) return;
     const nodes = await Promise.all(
-      message
-        .map(this.construct)
-        .map(async (segment) =>
+      message.map(this.construct).map(async (segment) =>
+        Object.assign(
           Structs.customNode(
             await segment,
             this.cfg.getInt('onebot.self.id', 1145141919),
             this.cfg.get('onebot.self.nickname', 'Forward Message')!,
           ),
+          {
+            uin: this.cfg.getInt('onebot.self.id', 1145141919),
+            name: this.cfg.get('onebot.self.nickname', 'Forward Message'),
+          },
         ),
+      ),
     );
     this.logger.info(nodes, 'sending forward message');
     const sendPayload = isUser(target)

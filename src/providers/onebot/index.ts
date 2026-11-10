@@ -162,26 +162,28 @@ export class ProviderOnebot implements IProvider {
   ) {
     if (!(await this.sendWait())) return;
     const nodes = await Promise.all(
-      message.map(this.construct).map(async (segment) =>
-        Object.assign(
+      message
+        .map(this.construct)
+        .map(async (segment) =>
           Structs.customNode(
             await segment,
             this.cfg.getInt('onebot.self.id', 1145141919),
             this.cfg.get('onebot.self.nickname', 'Forward Message')!,
           ),
-          {
-            uin: this.cfg.getInt('onebot.self.id', 1145141919),
-            name: this.cfg.get('onebot.self.nickname', 'Forward Message'),
-          },
         ),
-      ),
     );
+    // nodes.forEach((n) => {
+    //   Object.assign(n.data, {
+    //     uin: this.cfg.getInt('onebot.self.id', 1145141919),
+    //     name: this.cfg.get('onebot.self.nickname', 'Forward Message'),
+    //   });
+    // });
     this.logger.info(nodes, 'sending forward message');
     const sendPayload = isUser(target)
-      ? { user_id: Number(getId(target)), message: nodes }
-      : { group_id: Number(getId(target)), message: nodes };
+      ? { user_id: Number(getId(target)), messages: nodes }
+      : { group_id: Number(getId(target)), messages: nodes };
     const msgId = (
-      await this.ws?.send_forward_msg(sendPayload)
+      await this.ws?.send_forward_msg(sendPayload as any)
     )?.message_id?.toString();
     if (msgId) {
       message.forEach(this.filterBuffers);

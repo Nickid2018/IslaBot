@@ -1,8 +1,10 @@
 allowBuilds:
   '@prisma/engines': true
   better-sqlite3: true
+  bufferutil: true
   esbuild: true
   node-pipe: true
   prisma: true
   puppeteer: true
+  utf-8-validate: true
   workerd: true

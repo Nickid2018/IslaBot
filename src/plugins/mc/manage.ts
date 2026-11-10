@@ -29,11 +29,16 @@ import { Permission } from '../../core/permission';
 import { Features } from '../../core/features';
 import { Logger } from '../../core/logger';
 import * as util from 'node:util';
+// @ts-ignore
+import { Client } from 'rpc-websockets';
+import { once } from 'node:events';
+import { Config } from '../../core/config';
 
 const TEXT_KEY_TRANSFER = `
 正在开始设置服务器管理协议密钥，请将密钥以下列 RSA 公钥以 RSA-OAEP 格式，摘要算法 SHA-256 加密后以 Base64 回复本条消息发送
 %s
 注意：服务端应当开启 TLS 并使用可信证书，否则 bot 将拒绝连接
+注意：服务端应当将 %s 添加到 management-server-allowed-origins 中
 提示：可使用下列网址对密钥加密：
 https://gchq.github.io/CyberChef/#recipe=RSA_Encrypt('','RSA-OAEP','SHA-256')To_Base64('A-Za-z0-9%2B/%3D')
 `.trim();
@@ -50,6 +55,7 @@ export class MinecraftManageCommands
     private readonly features: Features,
     private readonly logger: Logger,
     private readonly db: Database,
+    private readonly cfg: Config,
   ) {}
 
   @feature('mc.server_manage')
@@ -224,7 +230,13 @@ export class MinecraftManageCommands
     });
     await provider.send(
       scope,
-      text(util.format(TEXT_KEY_TRANSFER, publicKey)),
+      text(
+        util.format(
+          TEXT_KEY_TRANSFER,
+          publicKey,
+          this.cfg.get('mc.manage.origin', 'https://mcsm-bot.loliworks.xyz'),
+        ),
+      ),
       {
         type: 'mc-server-manage-key',
         sid: serverInfo.server.id,
@@ -277,6 +289,101 @@ export class MinecraftManageCommands
     });
   }
 
+  private async _initRPC(
+    provider: IProvider,
+    target: Target,
+    scope: Target,
+    name: string,
+  ) {
+    const pScope = `${provider.id()}:${scope}`;
+    const pOp = `${provider.id()}:${target}`;
+
+    const serverInfo = await this.db.prisma.minecraftServerScope.findUnique({
+      where: { scope_name: { scope: pScope, name } },
+      select: {
+        id: true,
+        server: {
+          select: {
+            owner: true,
+            operators: true,
+            endpoint: true,
+            credential: true,
+          },
+        },
+      },
+    });
+    if (!serverInfo) return COMMAND_SKIPPED;
+
+    const ops = [
+      serverInfo.server.owner,
+      ...(serverInfo.server.operators as string[]),
+    ];
+    if (!ops.includes(pOp)) return COMMAND_SKIPPED;
+
+    if (!serverInfo.server.credential) {
+      await provider.send(scope, text('未设定服务端管理协议凭据'));
+      return COMMAND_CAUGHT;
+    }
+
+    const { endpoint, credential } = serverInfo.server;
+    let wsRpc;
+    try {
+      wsRpc = new Client(endpoint, {
+        protocols: ['minecraft-v1', credential],
+        reconnect: false,
+        origin: this.cfg.get(
+          'mc.manage.origin',
+          'https://mcsm-bot.loliworks.xyz',
+        ),
+      });
+      await once(wsRpc, 'open');
+    } catch (e) {
+      this.logger.error(
+        (e as ErrorEvent).error,
+        `cannot send whitelist request to ${endpoint}`,
+      );
+      await provider.send(
+        scope,
+        text(
+          '无法正确连接服务器，检查服务器是否启动并启用正确的 TLS 且正确设置允许连入来源',
+        ),
+      );
+      return COMMAND_CAUGHT;
+    }
+
+    return wsRpc;
+  }
+
+  @feature('mc.server_manage')
+  @regex(/^~mcserver whitelist add ([^ ]+) (.+)$/)
+  async doAddWhitelist(
+    provider: IProvider,
+    target: Target,
+    scope: Target,
+    _: string,
+    __: Message,
+    match?: RegExpMatchArray,
+  ): Promise<typeof COMMAND_CAUGHT | typeof COMMAND_SKIPPED> {
+    if (!match) return COMMAND_SKIPPED;
+    const wsRpc = await this._initRPC(provider, target, scope, match[1]);
+    if (typeof wsRpc === 'symbol') return wsRpc as any;
+
+    let resp: { name: string }[];
+    try {
+      resp = await wsRpc.call('allowlist/add', [[{ name: match[2].trim() }]]);
+      wsRpc.close();
+    } catch (e) {
+      this.logger.error(e, `whitelist request failed`);
+      await provider.send(scope, text('无法设置白名单'));
+      return COMMAND_CAUGHT;
+    }
+
+    if (resp.map((r) => r.name).includes(match[2].trim()))
+      await provider.send(scope, text('白名单添加成功'));
+    else await provider.send(scope, text('白名单添加失败，可能是名称错误'));
+    return COMMAND_CAUGHT;
+  }
+
   commands() {
     return [
       this.doAddServer,
@@ -284,6 +391,7 @@ export class MinecraftManageCommands
       this.doRemoveOperator,
       this.doServerCredRequest,
       this.doServerCredResponse,
+      this.doAddWhitelist,
     ];
   }
 }

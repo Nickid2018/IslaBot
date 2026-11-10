@@ -189,7 +189,7 @@ importers:
         version: 30.1.3
       node-napcat-ts:
         specifier: ^0.4.25
-        version: 0.4.25
+        version: 0.4.25(bufferutil@4.2.0)(utf-8-validate@6.0.6)
       node-pipe:
         specifier: ^0.1.1
         version: 0.1.1
@@ -204,13 +204,16 @@ importers:
         version: 4.0.0
       puppeteer:
         specifier: ^25.16.0
-        version: 25.16.0
+        version: 25.16.0(bufferutil@4.2.0)(utf-8-validate@6.0.6)
       puppeteer-autoscroll-down:
         specifier: ^2.0.1
         version: 2.0.1
       reflect-metadata:
         specifier: ^0.2.2
         version: 0.2.2
+      rpc-websockets:
+        specifier: ^10.0.1
+        version: 10.0.1
       tsyringe:
         specifier: ^4.10.0
         version: 4.10.0
@@ -654,6 +657,9 @@ packages:
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
 
+  '@swc/helpers@0.5.24':
+    resolution: {integrity: sha512-6tcXo4kA8HgGO7AVmawB57RYi/piBPYVHVcO6dXjX+SZw8GoHmi262sp4v2Ha2kNP9Cx84qei27yT+fjS1lxgg==}
+
   '@ttsc/darwin-arm64@0.34.2':
     resolution: {integrity: sha512-BwiDW175r73JrhVitNQfOg2MjtSE8Rprsr5kFdrVoLUKWBBFCgGE4J6o6sz97jYhKqm+vlWQ5zN7WtVdqUVsaA==}
     cpu: [arm64]
@@ -742,6 +748,9 @@ packages:
 
   '@types/tough-cookie@4.0.5':
     resolution: {integrity: sha512-/Ad8+nIOV7Rl++6f1BdKxFSMgmoqEoYbHRpPcx3JEfv8VRsQe9Z4mCXeJBzxs7mbHY/XOZZuXlRNfhpVPbs6ZA==}
+
+  '@types/ws@8.18.2':
+    resolution: {integrity: sha512-67MQl+fpWKVTT1NYdnmo3U4sc/xPo/zQBncVnI74qmQa0z/b+1g6iYqNmGCPbxO+zz2aklb08a0oHfegiVd0/w==}
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     resolution: {integrity: sha512-MTKKkWB7p/0E9xi1d1tHtZ5PiLkGEMIq88pK2CubZjOsLtYTLqhgIgi6zepFa+9GHZ6h05NMCkQxGKiPXMxXtQ==}
@@ -944,6 +953,13 @@ packages:
   buffer@5.7.1:
     resolution: {integrity: sha512-EHcyIPBQ4BSGlvjB16k5KgAJ27CIsHY/2JBmCRReo48y9rQ3MaUzWX3KVlBa4U7MyX02HdVj0K7C3WaB3ju7FQ==}
 
+  buffer@6.0.3:
+    resolution: {integrity: sha512-FTiCpNxtwiZZHEZbcbTIcZjERVICn9yq/pDFkTl95/AxzD1naBctN7YO68riM/gLSDY7sdrMby8hofADYuuqOA==}
+
+  bufferutil@4.2.0:
+    resolution: {integrity: sha512-gyy58jET9kst2IGyBKb96a4Y2bPGTHXGyCd0/1eqIV3hr1Sz3VxtA8n7bXh8fLIuE2K6Z0Upax5a5Msx+HU1IQ==}
+    engines: {node: '>=6.14.2'}
+
   bun-ffi-structs@0.3.1:
     resolution: {integrity: sha512-3gM7PpVWLyrwxWjcilSiGuhWanhZivvo6l0u573NziPH6f/gwk6McbaYgn7oJWov6pKGRTDbrg94W5DcJsKTtQ==}
     peerDependencies:
@@ -1129,6 +1145,9 @@ packages:
   escalade@3.2.0:
     resolution: {integrity: sha512-WUj2qlxaQtO4g6Pq5c29GTcWGDyd8itL8zTlipgECz3JesAiiOKotd8JU6otB3PACgG6xkJUyVhboMS+bje/jA==}
     engines: {node: '>=6'}
+
+  eventemitter3@5.0.4:
+    resolution: {integrity: sha512-mlsTRyGaPBjPedk6Bvw+aqbsXDtoAyAzm5MO7JgU+yVRyMQ5O8bD4Kcci7BS85f93veegeCPkL8R4GLClnjLFw==}
 
   expand-template@2.0.3:
     resolution: {integrity: sha512-XYfuKMvj4O35f/pOXLObndIRvyQ+/+6AhODh+OKWj9S9498pHHn/IMszH+gt0fBCRWMNfk1ZSp5x3AifmnI2vg==}
@@ -1338,6 +1357,10 @@ packages:
     resolution: {integrity: sha512-VijLXbi3UACN69I0JVXJsX4tjACjNoQDgv2gTF6sx2wWEi8tkSg2eX8p5gSIFi8z2+DL3oHmY6OyKce38SDolg==}
     engines: {node: ^18 || ^20 || >= 21}
 
+  node-gyp-build@4.8.4:
+    resolution: {integrity: sha512-LA4ZjwlnUblHVgq0oBF3Jl/6h/Nvs5fzBLwdEF4nuxnFdsfajde4WfxtJr3CaiH+F6ewcIB/q4jQ4UzPyid+CQ==}
+    hasBin: true
+
   node-napcat-ts@0.4.25:
     resolution: {integrity: sha512-Yp/+JNJ65DnCnNJzxVP/kqkRXdDHM4hVM3MLuYvoGFaT3gCclSyuEiZ5tL5ADVrWxWHMtJJaV5yJVSrBsrIR/w==}
 
@@ -1512,6 +1535,10 @@ packages:
   robust-predicates@3.0.3:
     resolution: {integrity: sha512-NS3levdsRIUOmiJ8FZWCP7LG3QpJyrs/TE0Zpf1yvZu8cAJJ6QMW92H1c7kWpdIHo8RvmLxN/o2JXTKHp74lUA==}
 
+  rpc-websockets@10.0.1:
+    resolution: {integrity: sha512-hLG078kUh3g6ZDS13pttUGnlTxl6zP5MtWIAJxVb+8lwjDYART7b6zjecDQuAfw8r4gJbPvN+KiVAByMfBZYyQ==}
+    engines: {node: '>=18'}
+
   safe-buffer@5.2.1:
     resolution: {integrity: sha512-rp3So07KcdmmKbGvgaNxQSJr7bGVSVk5S9Eq1F+ppbRo70+YeaDxkw5Dd8NPN+GD6bjnYm2VuPuCXmpuYvmCXQ==}
 
@@ -1670,6 +1697,10 @@ packages:
     resolution: {integrity: sha512-+fdndUTwBP86cVjihTp21hZHo7d6oj1c/47XPA3lL8mM0XHs+C4EkcjmgRsFnFk2f/UONGDy9ItBItmXsLOQHw==}
     engines: {node: '>=22.19.0'}
 
+  utf-8-validate@6.0.6:
+    resolution: {integrity: sha512-q3l3P9UtEEiAHcsgsqTgf9PPjctrDWoIXW3NpOHFdRDbLvu4DLIcxHangJ4RLrWkBcKjmcs/6NkerI8T/rE4LA==}
+    engines: {node: '>=6.14.2'}
+
   util-deprecate@1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
 
@@ -1720,8 +1751,8 @@ packages:
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
-  ws@8.22.0:
-    resolution: {integrity: sha512-Ydggc987+RO0AnWtZ/7Wq9FtNvcrL1b/RO0ud9mWjUPgDrsAAwQSF51sm2hm1XofbU/4jkpGEsLFsZZxU+1DOg==}
+  ws@8.22.2:
+    resolution: {integrity: sha512-/rEZ2ejown2N5gxVTHUu9bVVC7ttu0/Tgzf5hbTOixR3Fs7mbbXgn2DbdbcKgJOmpQMtrIUWivtYuVMnp/W/yA==}
     engines: {node: '>=10.0.0'}
     peerDependencies:
       bufferutil: ^4.0.1
@@ -2095,6 +2126,8 @@ snapshots:
 
   '@standard-schema/spec@1.1.0': {}
 
+  '@swc/helpers@0.5.24': {}
+
   '@ttsc/darwin-arm64@0.34.2':
     optional: true
 
@@ -2170,6 +2203,10 @@ snapshots:
       csstype: 3.2.3
 
   '@types/tough-cookie@4.0.5': {}
+
+  '@types/ws@8.18.2':
+    dependencies:
+      '@types/node': 26.6.5
 
   '@typescript/typescript-aix-ppc64@7.0.2':
     optional: true
@@ -2353,6 +2390,16 @@ snapshots:
       base64-js: 1.5.1
       ieee754: 1.2.1
 
+  buffer@6.0.3:
+    dependencies:
+      base64-js: 1.5.1
+      ieee754: 1.2.1
+
+  bufferutil@4.2.0:
+    dependencies:
+      node-gyp-build: 4.8.4
+    optional: true
+
   bun-ffi-structs@0.3.1(typescript@7.0.2):
     dependencies:
       typescript: 7.0.2
@@ -2519,6 +2566,8 @@ snapshots:
 
   escalade@3.2.0: {}
 
+  eventemitter3@5.0.4: {}
+
   expand-template@2.0.3: {}
 
   exsolve@1.2.0: {}
@@ -2607,9 +2656,9 @@ snapshots:
 
   isexe@2.0.0: {}
 
-  isomorphic-ws@5.0.0(ws@8.22.0):
+  isomorphic-ws@5.0.0(ws@8.22.2(bufferutil@4.2.0)(utf-8-validate@6.0.6)):
     dependencies:
-      ws: 8.22.0
+      ws: 8.22.2(bufferutil@4.2.0)(utf-8-validate@6.0.6)
 
   jiti@2.7.0: {}
 
@@ -2691,11 +2740,14 @@ snapshots:
 
   node-addon-api@8.9.2: {}
 
-  node-napcat-ts@0.4.25:
+  node-gyp-build@4.8.4:
+    optional: true
+
+  node-napcat-ts@0.4.25(bufferutil@4.2.0)(utf-8-validate@6.0.6):
     dependencies:
-      isomorphic-ws: 5.0.0(ws@8.22.0)
+      isomorphic-ws: 5.0.0(ws@8.22.2(bufferutil@4.2.0)(utf-8-validate@6.0.6))
       nanoid: 5.1.16
-      ws: 8.22.0
+      ws: 8.22.2(bufferutil@4.2.0)(utf-8-validate@6.0.6)
     transitivePeerDependencies:
       - bufferutil
       - utf-8-validate
@@ -2858,27 +2910,27 @@ snapshots:
 
   puppeteer-autoscroll-down@2.0.1: {}
 
-  puppeteer-core@25.16.0:
+  puppeteer-core@25.16.0(bufferutil@4.2.0)(utf-8-validate@6.0.6):
     dependencies:
       '@puppeteer/browsers': 3.2.6
       chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1704951)
       devtools-protocol: 0.0.1704951
       typed-query-selector: 2.12.3
       webdriver-bidi-protocol: 1.0.1
-      ws: 8.22.0
+      ws: 8.22.2(bufferutil@4.2.0)(utf-8-validate@6.0.6)
     transitivePeerDependencies:
       - bufferutil
       - proxy-agent
       - utf-8-validate
       - yauzl
 
-  puppeteer@25.16.0:
+  puppeteer@25.16.0(bufferutil@4.2.0)(utf-8-validate@6.0.6):
     dependencies:
       '@puppeteer/browsers': 3.2.6
       chromium-bidi: 157.0.8090-0(devtools-protocol@0.0.1704951)
       devtools-protocol: 0.0.1704951
       lilconfig: 3.1.4
-      puppeteer-core: 25.16.0
+      puppeteer-core: 25.16.0(bufferutil@4.2.0)(utf-8-validate@6.0.6)
       typed-query-selector: 2.12.3
     transitivePeerDependencies:
       - bufferutil
@@ -2930,6 +2982,17 @@ snapshots:
   retry@0.12.0: {}
 
   robust-predicates@3.0.3: {}
+
+  rpc-websockets@10.0.1:
+    dependencies:
+      '@swc/helpers': 0.5.24
+      '@types/ws': 8.18.2
+      buffer: 6.0.3
+      eventemitter3: 5.0.4
+      ws: 8.22.2(bufferutil@4.2.0)(utf-8-validate@6.0.6)
+    optionalDependencies:
+      bufferutil: 4.2.0
+      utf-8-validate: 6.0.6
 
   safe-buffer@5.2.1: {}
 
@@ -3099,6 +3162,11 @@ snapshots:
 
   undici@8.12.3: {}
 
+  utf-8-validate@6.0.6:
+    dependencies:
+      node-gyp-build: 4.8.4
+    optional: true
+
   util-deprecate@1.0.2: {}
 
   valibot@1.4.2(typescript@7.0.2):
@@ -3137,7 +3205,10 @@ snapshots:
 
   wrappy@1.0.2: {}
 
-  ws@8.22.0: {}
+  ws@8.22.2(bufferutil@4.2.0)(utf-8-validate@6.0.6):
+    optionalDependencies:
+      bufferutil: 4.2.0
+      utf-8-validate: 6.0.6
 
   xml-name-validator@5.0.0: {}
 

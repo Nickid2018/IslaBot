@@ -21,7 +21,7 @@ export class Config {
   get(cfgPath: string, defaultVal: string | null = null): string | null {
     if (this.configMapCached.has(cfgPath)) {
       const val = this.configMapCached.get(cfgPath);
-      return val ? String(val) : null;
+      return val ? String(val) : defaultVal;
     }
     const path = cfgPath.split('.');
     const val = path.reduce((pv, curr) => pv?.[curr], this.configMapSource);

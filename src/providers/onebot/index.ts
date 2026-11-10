@@ -134,7 +134,7 @@ export class ProviderOnebot implements IProvider {
       return message.type === 'text' ? message.content.length : 0;
     };
     if (_countTexts(message) > this.cfg.getInt('onebot.send.max_len', 300))
-      return await this.sendForward(target, [message]);
+      return await this.sendForward(target, [message], savedMetadata);
 
     if (!(await this.sendWait())) return;
     const structs = await this.construct(message);
@@ -172,6 +172,7 @@ export class ProviderOnebot implements IProvider {
           ),
         ),
     );
+    this.logger.info(nodes, 'sending forward message');
     const sendPayload = isUser(target)
       ? { user_id: Number(getId(target)), message: nodes }
       : { group_id: Number(getId(target)), message: nodes };

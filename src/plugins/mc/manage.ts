@@ -368,9 +368,10 @@ export class MinecraftManageCommands
     const wsRpc = await this._initRPC(provider, target, scope, match[1]);
     if (typeof wsRpc === 'symbol') return wsRpc as any;
 
+    const name = match[2].trim();
     let resp: { name: string }[];
     try {
-      resp = await wsRpc.call('allowlist/add', [[{ name: match[2].trim() }]]);
+      resp = await wsRpc.call('allowlist/add', [[{ name }]]);
       wsRpc.close();
     } catch (e) {
       this.logger.error(e, `whitelist request failed`);
@@ -378,9 +379,37 @@ export class MinecraftManageCommands
       return COMMAND_CAUGHT;
     }
 
-    if (resp.map((r) => r.name).includes(match[2].trim()))
+    if (resp.map((r) => r.name).includes(name))
       await provider.send(scope, text('白名单添加成功'));
     else await provider.send(scope, text('白名单添加失败，可能是名称错误'));
+    return COMMAND_CAUGHT;
+  }
+
+  @feature('mc.server_manage')
+  @regex(/^~mcserver whitelist remove ([^ ]+) (.+)$/)
+  async doRemoveWhitelist(
+    provider: IProvider,
+    target: Target,
+    scope: Target,
+    _: string,
+    __: Message,
+    match?: RegExpMatchArray,
+  ): Promise<typeof COMMAND_CAUGHT | typeof COMMAND_SKIPPED> {
+    if (!match) return COMMAND_SKIPPED;
+    const wsRpc = await this._initRPC(provider, target, scope, match[1]);
+    if (typeof wsRpc === 'symbol') return wsRpc as any;
+
+    const name = match[2].trim();
+    try {
+      await wsRpc.call('allowlist/remove', [[{ name }]]);
+      wsRpc.close();
+    } catch (e) {
+      this.logger.error(e, `whitelist request failed`);
+      await provider.send(scope, text('无法设置白名单'));
+      return COMMAND_CAUGHT;
+    }
+
+    await provider.send(scope, text('白名单已移除'));
     return COMMAND_CAUGHT;
   }
 
@@ -392,6 +421,7 @@ export class MinecraftManageCommands
       this.doServerCredRequest,
       this.doServerCredResponse,
       this.doAddWhitelist,
+      this.doRemoveWhitelist,
     ];
   }
 }

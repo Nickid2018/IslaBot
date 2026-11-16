@@ -85,7 +85,6 @@ export class Fetcher {
   getRedirectLocation = async (url: string) => {
     try {
       const resp = await this.fetch(url, { redirect: 'manual' });
-      if (!resp.ok) return await this._logNotOK(resp);
       if (!resp.redirected) return this.logger.warn(`'${url}' not redirected`);
       return resp.headers.get('Location');
     } catch (e) {
